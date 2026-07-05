@@ -1,0 +1,91 @@
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# ===========================
+# Virtual Environment
+# ===========================
+.venv/
+venv/
+env/
+ENV/
+
+# ===========================
+# Environment & Secrets
+# ===========================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ===========================
+# IDE / Editor
+# ===========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# ===========================
+# Database & Instance
+# ===========================
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# ===========================
+# Generated Data (can be rebuilt)
+# ===========================
+backend/data/cities1000.txt
+backend/data/cities1000.zip
+
+# ===========================
+# Tooling & Config
+# ===========================
+.opencode/
+.agents/
+skills-lock.json
+
+# ===========================
+# Logs
+# ===========================
+*.log
+logs/
+npm-debug.log*
+
+# ===========================
+# Test & Coverage
+# ===========================
+.pytest_cache/
+coverage/
+htmlcov/
+.tox/
+
+# ===========================
+# System Files
+# ===========================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===========================
+# Cache & Temp
+# ===========================
+.cache/
+tmp/
+.temp/
+*.tmp

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport Météo – {{ meteo.ville }}</title>
+    <link rel="stylesheet" href="/static/fonts/google-fonts.css">
+    <link rel="stylesheet" href="/static/vendor/tabler/tabler-icons.min.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'DM Sans',sans-serif; padding:40px; color:#1a1f3e; background:#fff; max-width:800px; margin:0 auto; }
+        .report-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #5b7cfa; padding-bottom:20px; margin-bottom:24px; }
+        .report-title { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:#5b7cfa; }
+        .report-subtitle { font-size:0.9rem; color:#8892b0; margin-top:4px; }
+        .report-date { font-size:0.85rem; color:#8892b0; text-align:right; }
+        .main-info { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px; }
+        .info-block { background:#f0f4ff; border-radius:12px; padding:20px; }
+        .ib-title { font-size:0.75rem; text-transform:uppercase; letter-spacing:1.5px; color:#8892b0; margin-bottom:10px; font-weight:700; }
+        .ib-big { font-family:'Syne',sans-serif; font-size:2.5rem; font-weight:800; color:#5b7cfa; }
+        .ib-sub { font-size:0.9rem; color:#5a6080; margin-top:4px; }
+        .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+        .stat-item { background:#f8f9ff; border:1px solid #e0e8ff; border-radius:10px; padding:14px; text-align:center; }
+        .si-icon { font-size:1.4rem; margin-bottom:4px; }
+        .si-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; color:#8892b0; margin-bottom:2px; }
+        .si-val { font-size:1.1rem; font-weight:700; }
+        .section-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:800; color:#1a1f3e; margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid #e0e8ff; }
+        .reco-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:24px; }
+        .reco-item { background:#f0f4ff; border-radius:10px; padding:14px; }
+        .ri-title { font-size:0.8rem; font-weight:700; color:#5b7cfa; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
+        .ri-content { font-size:0.88rem; color:#5a6080; line-height:1.7; }
+        .forecast-table { width:100%; border-collapse:collapse; margin-bottom:24px; }
+        .forecast-table th { background:#5b7cfa; color:#fff; padding:10px; text-align:left; font-size:0.82rem; }
+        .forecast-table td { padding:9px 10px; font-size:0.85rem; border-bottom:1px solid #f0f4ff; }
+        .forecast-table tr:nth-child(even) td { background:#f8f9ff; }
+        .footer { text-align:center; font-size:0.8rem; color:#8892b0; border-top:1px solid #e0e8ff; padding-top:16px; margin-top:12px; }
+        .print-btn { position:fixed; top:20px; right:20px; background:#5b7cfa; color:#fff; border:none; padding:10px 24px; border-radius:50px; cursor:pointer; font-size:1rem; font-weight:600; font-family:'DM Sans',sans-serif; box-shadow:0 4px 14px rgba(91,124,250,0.4); }
+        @media print { .print-btn{display:none;} }
+    </style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">{{ ui_icon('printer') }} Imprimer / PDF</button>
+
+<!-- Language info (for print it's static, but switcher can be added if opened directly) -->
+<script>
+const TRANSLATIONS = { fr: {}, en: {} }; // minimal for report
+// For full bilingual in report, the backend can render different text, or use this.
+</script>
+
+<div class="report-header">
+    <div>
+        <div class="report-title" data-i18n="report_title">{{ weather_icon('Clear', true) }} Rapport Météo</div>
+        <div class="report-subtitle">{{ meteo.ville }}, {{ meteo.pays }}</div>
+    </div>
+    <div class="report-date">
+        <div>{{ meteo.date }}</div>
+        <div style="margin-top:4px;">Généré le {{ meteo.date }}</div>
+        <div style="margin-top:4px;font-size:1.2rem;">{{ weather_icon(meteo.condition, sunrise=meteo.lever_soleil, sunset=meteo.coucher_soleil) }}</div>
+    </div>
+</div>
+
+<div class="main-info">
+    <div class="info-block">
+        <div class="ib-title" data-i18n="current_temp">Température actuelle</div>
+        <div class="ib-big">{{ meteo.temperature }}°{{ meteo.unite }}</div>
+        <div class="ib-sub">Ressenti {{ meteo.temperature_reelle }}° &nbsp;|&nbsp; {{ meteo.description }}</div>
+        <div class="ib-sub" style="margin-top:6px;">Min {{ meteo.temp_min }}° &nbsp;/&nbsp; Max {{ meteo.temp_max }}°</div>
+    </div>
+    <div class="info-block">
+        <div class="ib-title">Résumé IA</div>
+        <div style="font-size:0.95rem;line-height:1.7;color:#1a1f3e;">{{ strip_emoji(recommendations.summary) }}</div>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-item"><div class="si-icon">{{ ui_icon('droplet') }}</div><div class="si-label">Humidité</div><div class="si-val">{{ meteo.humidite }}%</div></div>
+    <div class="stat-item"><div class="si-icon">{{ ui_icon('wind-meter') }}</div><div class="si-label">Vent</div><div class="si-val">{{ meteo.vent }} m/s</div></div>
+    <div class="stat-item"><div class="si-icon">{{ ui_icon('pressure') }}</div><div class="si-label">Pression</div><div class="si-val">{{ meteo.pression }} hPa</div></div>
+    <div class="stat-item"><div class="si-icon">{{ ui_icon('eye') }}</div><div class="si-label">Visibilité</div><div class="si-val">{{ meteo.visibilite }} km</div></div>
+    <div class="stat-item"><div class="si-icon">{{ ui_icon('cloud') }}</div><div class="si-label">Nuages</div><div class="si-val">{{ meteo.nuages }}%</div></div>
+    <div class="stat-item"><div class="si-icon">{{ ui_icon('target') }}</div><div class="si-label">Confort</div><div class="si-val">{{ recommendations.comfort_index }}%</div></div>
+    <div class="stat-item"><div class="si-icon">{{ sunrise_icon() }}</div><div class="si-label">Lever</div><div class="si-val">{{ meteo.lever_soleil }}</div></div>
+    <div class="stat-item"><div class="si-icon">{{ sunset_icon() }}</div><div class="si-label">Coucher</div><div class="si-val">{{ meteo.coucher_soleil }}</div></div>
+    {% if uv %}<div class="stat-item"><div class="si-icon">{{ ui_icon('sun') }}</div><div class="si-label">UV</div><div class="si-val" style="color:{{ uv.color }}">{{ uv.index }} – {{ uv.risk }}</div></div>{% endif %}
+</div>
+
+<div class="section-title">{{ ui_icon('ai') }} Recommandations IA</div>
+<div class="reco-grid">
+    <div class="reco-item">
+        <div class="ri-title">{{ clothing_icon('jacket') }} Tenue recommandée</div>
+        <div class="ri-content">{% if recommendations.clothing %}{% for item in recommendations.clothing %}{{ strip_emoji(item) }}<br>{% endfor %}{% endif %}</div>
+    </div>
+    <div class="reco-item">
+        <div class="ri-title">{{ activity_icon('running') }} Activités suggérées</div>
+        <div class="ri-content">{% if recommendations.activities and recommendations.activities.activities %}{% for a in recommendations.activities.activities %}{{ strip_emoji(a) }}<br>{% endfor %}{% endif %}</div>
+    </div>
+    <div class="reco-item">
+        <div class="ri-title">{{ activity_icon('driving') }} Conditions de voyage</div>
+        <div class="ri-content">{% if recommendations.travel %}{{ strip_emoji(recommendations.travel) }}{% endif %}</div>
+    </div>
+    {% if qualite_air %}
+    <div class="reco-item">
+        <div class="ri-title">{{ ui_icon('wind-meter') }} Qualité de l'air</div>
+        <div class="ri-content">{{ aqi_icon(qualite_air.aqi) }} {{ qualite_air.label }}<br>PM2.5: {{ qualite_air.pm25 }} µg/m³<br>PM10: {{ qualite_air.pm10 }} µg/m³</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Expanded AI fields (from enhanced Gemini) -->
+{% if recommendations.best_hours or recommendations.pack or recommendations.safety_tips or recommendations.outfit %}
+<div style="margin-top:16px; padding:12px; background:#fff; border-radius:12px; color:#1a1f3e; font-size:0.9rem; border:1px solid #ddd;">
+    {% if recommendations.outfit %}
+    <div><strong>{{ clothing_icon('tshirt') }} Tenue suggérée :</strong> {{ strip_emoji(recommendations.outfit.main) }} {% if recommendations.outfit.accessories %}— {{ recommendations.outfit.accessories | map('strip_emoji') | join(', ') }}{% endif %}</div>
+    {% endif %}
+    {% if recommendations.best_hours %}
+    <div style="margin:6px 0 4px;"><strong>{{ ui_icon('clock') }} Meilleurs horaires :</strong>
+        {% for bh in recommendations.best_hours %}<span style="background:#f0f4ff;padding:1px 6px;border-radius:6px;margin-right:4px;">{{ bh.time }} {{ strip_emoji(bh.reason) }}</span>{% endfor %}
+    </div>
+    {% endif %}
+    {% if recommendations.pack %}
+    <div><strong>{{ ui_icon('backpack') }} À emporter :</strong> {{ recommendations.pack | map('strip_emoji') | join(' • ') }}</div>
+    {% endif %}
+    {% if recommendations.safety_tips %}
+    <div style="margin-top:4px;"><strong>{{ ui_icon('alert') }} Conseils sécurité :</strong> {{ recommendations.safety_tips | map('strip_emoji') | join(' • ') }}</div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="section-title">{{ ui_icon('calendar') }} Prévisions 5 jours</div>
+<table class="forecast-table">
+    <thead><tr><th>Jour</th><th>Date</th><th>Condition</th><th>Max</th><th>Min</th><th>Humidité</th><th>Vent</th></tr></thead>
+    <tbody>
+        {% for p in previsions %}
+        <tr>
+            <td>{{ weather_icon(p.condition, true) }} {{ p.jour }}</td>
+            <td>{{ p.date }}</td>
+            <td>{{ p.description }}</td>
+            <td>{{ p.temp_max }}°</td>
+            <td>{{ p.temp_min }}°</td>
+            <td>{{ p.humidite }}%</td>
+            <td>{{ p.vent }} m/s</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="footer">
+    Météo Express Pro &bull; Données OpenWeatherMap &bull; Développé par Cheick Yacouba Soukouna
+</div>
+<script>
+// Minimal bilingual for report
+const TRANSLATIONS = {
+  fr: {
+    "report_title": "Rapport Météo",
+    "current_temp": "Température actuelle",
+    "ia_summary": "Résumé IA"
+  },
+  en: {
+    "report_title": "Weather Report",
+    "current_temp": "Current Temperature",
+    "ia_summary": "AI Summary"
+  }
+};
+let currentLang = '{{ lang|default("fr") }}';
+
+function applyLanguage(lang) {
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.fr;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key] === undefined) return;
+    if (el._mxIconPrefix === undefined) {
+      const m = el.innerHTML.match(/^\s*(<i class="ti[^"]*"[^>]*><\/i>|<img class="weather-icon-meteocon"[^>]*>|<span class="fi[^"]*"[^>]*><\/span>)/);
+      el._mxIconPrefix = m ? m[1] : '';
+    }
+    el.innerHTML = (el._mxIconPrefix ? el._mxIconPrefix + ' ' : '') + t[key];
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyLanguage(currentLang);
+});
+</script>
+</body>
+</html>

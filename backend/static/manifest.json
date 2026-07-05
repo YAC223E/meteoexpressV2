@@ -1,0 +1,27 @@
+{
+  "name": "Météo Express Pro",
+  "short_name": "Météo Pro",
+  "description": "Météo en temps réel, recommandations IA, cartes interactives et planification d'activités. Fonctionne hors-ligne pour vos dernières consultations.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1124",
+  "theme_color": "#5b7cfa",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["weather", "utilities", "lifestyle"],
+  "lang": "fr-FR",
+  "scope": "/"
+}

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+{% from "partials/search_form.html" import search_form %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Météo Express Pro</title>
+    <link rel="stylesheet" href="/static/fonts/google-fonts.css">
+    <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
+    <link rel="stylesheet" href="/static/vendor/tabler/tabler-icons.min.css">
+    <link rel="stylesheet" href="/static/vendor/flag-icons/css/flag-icons.min.css">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#4fc3f7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Météo Pro">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.jpg">
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body class="{% if meteo and not meteo.erreur %}weather-{{ meteo.condition|lower }}{% endif %}"
+      {% if meteo and not meteo.erreur %}data-condition="{{ meteo.condition }}" data-isday="{{ meteo.est_jour|default('true')|lower }}"{% endif %}>
+<!-- Full-screen animated weather background -->
+<canvas id="weather-bg" style="position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:-1; pointer-events:none; opacity:0.65;"></canvas>
+
+<div class="wrap">
+
+    <!-- HEADER -->
+    <header class="header">
+        <a href="/" class="logo">
+            <span class="logo-icon">{{ weather_icon('Clouds', true) }}</span>
+            <span>Météo Express <span style="font-size:0.55em;opacity:0.7;">Pro</span></span>
+        </a>
+        <div class="header-controls">
+            {% if meteo and not meteo.erreur %}
+            <a href="/" class="back-home-btn" data-i18n="back_home">{{ ui_icon('home') }} Accueil</a>
+            <a href="/compare?city1={{ meteo.ville }}&unit={{ unite|default('C') }}&lang={{ lang|default('fr') }}" class="pill-btn" data-i18n="compare">{{ ui_icon('compare') }} Comparer</a>
+            <a href="/export-pdf?city={{ meteo.ville }}&unit={{ unite|default('C') }}&lang={{ lang|default('fr') }}" target="_blank" class="pill-btn" data-i18n="export">{{ ui_icon('export') }} Export</a>
+            {% endif %}
+            <button id="settingsBtn" class="pill-btn" aria-label="Paramètres" aria-expanded="false" onclick="toggleSettings()">{{ ui_icon('settings') }}</button>
+            <div id="settingsPanel" class="settings-panel" hidden>
+                <div class="unit-toggle">
+                    <button id="unit-c" class="unit-btn {% if unite != 'F' %}active{% endif %}" onclick="setUnit('C')">°C</button>
+                    <button id="unit-f" class="unit-btn {% if unite == 'F' %}active{% endif %}" onclick="setUnit('F')">°F</button>
+                </div>
+                <button class="pill-btn settings-panel-btn" onclick="toggleTheme()"><span id="theme-icon">{{ ui_icon('theme-dark') }}</span> <span id="themeLabel">Theme</span></button>
+                <div class="lang-switch" style="display:flex; background:var(--card); border:1px solid var(--card-border); border-radius:50px; padding:2px; font-size:0.8rem;">
+                    <button id="lang-fr" onclick="setLanguage('fr')" class="lang-btn active">{{ flag_icon('fr') }}</button>
+                    <button id="lang-en" onclick="setLanguage('en')" class="lang-btn">{{ flag_icon('gb') }}</button>
+                </div>
+                <button id="installBtn" class="pill-btn settings-panel-btn" style="display:none;" title="Installer comme application">{{ ui_icon('device') }} Installer</button>
+                {% if meteo and not meteo.erreur %}
+                <button onclick="shareAsImage()" class="pill-btn settings-panel-btn" title="Télécharger une belle carte à partager">{{ ui_icon('camera') }} Partager</button>
+                {% endif %}
+            </div>
+
+            <!-- Auth nav -->
+            {% if user %}
+            <a href="/profile" class="pill-btn" title="Mon profil">{{ user.email[:20] }}</a>
+            <a href="/logout" class="pill-btn" style="color:var(--danger);">Déconnexion</a>
+            {% else %}
+            <a href="/signup" class="pill-btn" data-i18n="signup">S'inscrire</a>
+            <a href="/login" class="pill-btn" data-i18n="login">Connexion</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- SEARCH -->
+    {% if meteo %}
+    <section class="search-section">
+        {{ search_form(recherche=recherche, unite=unite|default('C'), lang=lang|default('fr'), variant='full') }}
+        <div id="recentSearches" style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px; min-height:26px;"></div>
+    </section>
+    {% endif %}
+
+    <!-- LOADING + SKELETONS -->
+    <div class="loading" id="loading" style="display:none;">
+        <div class="spinner"></div>
+        <p style="color:var(--text-muted);" data-i18n="loading">Chargement de vos données météo...</p>
+    </div>
+
+    <!-- Skeleton state (shown briefly on search) -->
+    <div id="skeleton" class="skeleton-wrap" style="display:none; margin-bottom:20px;">
+        <div class="skeleton hero-skel"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div class="skeleton sk-card"></div>
+            <div class="skeleton sk-card"></div>
+        </div>
+        <div class="skeleton" style="height:210px;"></div>
+    </div>
+
+    <!-- ERROR -->
+    {% if meteo and meteo.erreur %}
+    <div class="card error-card">
+        <div style="font-size:3.5rem;margin-bottom:14px;">{{ ui_icon('mood-puzzled') }}</div>
+        <h2 style="margin-bottom:10px;" data-i18n="city_not_found">Ville introuvable</h2>
+        <p>{{ meteo.erreur }}</p>
+        <a href="/" class="back-home-btn" style="margin:20px auto 0;width:fit-content;" data-i18n="back_home_bottom">{{ ui_icon('back') }} Retour à l'accueil</a>
+    </div>
+
+    {% elif meteo and not meteo.erreur %}
+
+    <!-- FAVORITES BAR -->
+    <div class="favs-bar" id="favsBar" style="display:none;"></div>
+
+    <!-- ALERTS -->
+    {% if alerts %}
+    <div class="alerts-wrap">
+        {% for a in alerts %}
+        <div class="alert alert-{{ a.type }}">
+            <span class="icon-lg">{% if a.icon == 'Thunderstorm' %}{{ weather_icon('Thunderstorm', true) }}{% elif a.icon == 'Snow' %}{{ weather_icon('Snow', true) }}{% elif a.icon == '\U0001F4A7' %}{{ ui_icon('droplets') }}{% elif a.icon == '\U0001F525' %}{{ ui_icon('flame') }}{% elif a.icon == '\U0001F32A\ufe0f' %}{{ ui_icon('wind-meter') }}{% elif a.icon == '\u2600\ufe0f' %}{{ ui_icon('sun') }}{% else %}{{ ui_icon('alert') }}{% endif %}</span>
+            <div><strong>{{ a.title }}</strong><p style="margin-top:3px;font-size:0.9rem;opacity:0.9;">{{ a.msg }}</p></div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <nav class="quick-nav" aria-label="Accès rapide">
+        <button class="pill-btn quick-nav-pill" data-target="section-today"><i class="ti ti-calendar"></i><span>Aujourd'hui</span></button>
+        <button class="pill-btn quick-nav-pill" data-target="section-sun-wind"><i class="ti ti-wind"></i><span>Vent/Soleil</span></button>
+        <button class="pill-btn quick-nav-pill" data-target="section-map"><i class="ti ti-map-2"></i><span>Carte</span></button>
+        <button class="pill-btn quick-nav-pill" data-target="section-ai"><i class="ti ti-bulb"></i><span>IA</span></button>
+        <button class="pill-btn quick-nav-pill" data-target="section-forecast"><i class="ti ti-calendar"></i><span>5 jours</span></button>
+        <button class="pill-btn quick-nav-pill" data-target="section-air-quality"><i class="ti ti-wind"></i><span>Air</span></button>
+    </nav>
+
+    <!-- MAIN GRID: current weather + details -->
+    <div class="main-grid card-section" id="section-today">
+        <div class="card current-weather s1 hero-card card-delay-1">
+            <div class="city-name">{{ meteo.ville }}</div>
+            <div class="city-country" id="cityLocalClock" data-tz-offset="{{ meteo.tz_offset_secondes }}">{{ meteo.pays }} • {{ meteo.date }}</div>
+
+            <!-- Hero weather visual -->
+            <div class="hero-weather-visual">
+                <div class="weather-emoji">
+                    <div class="weather-icon-wrap weather-icon-{{ weather_icon_css_class(meteo.condition, _is_day(meteo.lever_soleil, meteo.coucher_soleil)) }}">
+                        {{ weather_icon(meteo.condition, sunrise=meteo.lever_soleil, sunset=meteo.coucher_soleil) }}
+                        {% if meteo.condition in ['Rain', 'Drizzle', 'Thunderstorm'] %}
+                        <div class="rain-overlay"><span></span><span></span><span></span><span></span></div>
+                        {% endif %}
+                        {% if meteo.condition == 'Thunderstorm' %}
+                        <div class="lightning-overlay"></div>
+                        {% endif %}
+                    </div>
+                </div>
+                <canvas id="weatherFx" width="260" height="120" class="fx-canvas"></canvas>
+                <!-- Subtle glow ring -->
+                <div class="hero-glow-ring"></div>
+            </div>
+
+            <div class="temp-main switchable" id="heroTemp">{{ meteo.temperature }}°{{ meteo.unite }}</div>
+            <div class="feels-like">
+                <span class="switchable" id="heroFeels">Ressenti {{ meteo.temperature_reelle }}°{{ meteo.unite }}</span>
+                <button onclick="showExplain('ressenti')" title="Comprendre la température ressentie" class="explain-btn">{{ ui_icon('info') }}</button>
+            </div>
+            <div class="weather-desc">{{ meteo.description }}</div>
+
+            <div class="temp-range">
+                <div class="tr-item"><div class="tr-label">Min</div><div class="tr-val switchable" id="heroMin">{{ meteo.temp_min }}°</div></div>
+                <div class="tr-item"><div class="tr-label">Max</div><div class="tr-val switchable" id="heroMax">{{ meteo.temp_max }}°</div></div>
+            </div>
+
+            <button id="favBtn" data-city="{{ meteo.ville }}" onclick="toggleFav('{{ meteo.ville }}',{{ meteo.temperature }},'{{ meteo.description }}')" class="fav-btn" data-i18n="save_fav">
+                {{ ui_icon('star') }} Ajouter aux favoris
+            </button>
+        </div>
+
+        <div class="card s2 card-delay-2">
+            <div class="card-title" data-i18n="details_title">{{ ui_icon('chart') }} Détails actuels</div>
+            <div class="details-grid">
+                <div class="detail-item"><div class="d-icon">{{ ui_icon('droplet') }}</div><div class="d-label" data-i18n="humidity">Humidité</div><div class="d-val switchable">{{ meteo.humidite }}%</div></div>
+                <div class="detail-item"><div class="d-icon">{{ ui_icon('wind-meter') }}</div><div class="d-label" data-i18n="wind">Vent</div><div class="d-val">{{ meteo.vent }} m/s</div></div>
+                <div class="detail-item"><div class="d-icon">{{ ui_icon('eye') }}</div><div class="d-label" data-i18n="visibility">Visibilité</div><div class="d-val">{{ meteo.visibilite }} km</div></div>
+                <div class="detail-item"><div class="d-icon">{{ ui_icon('cloud') }}</div><div class="d-label" data-i18n="clouds">Nuages</div><div class="d-val">{{ meteo.nuages }}%</div></div>
+                <div class="detail-item"><div class="d-icon">{{ ui_icon('pressure') }}</div><div class="d-label" data-i18n="pressure">Pression</div><div class="d-val">{{ meteo.pression }} hPa</div></div>
+                <div class="detail-item"><div class="d-icon">{{ ui_icon('compass') }}</div><div class="d-label" data-i18n="direction">Direction</div><div class="d-val" id="windDirText">—</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WIND COMPASS + SUNRISE ARC -->
+    <div class="main-grid card-section" id="section-sun-wind">
+        <div class="card s3 card-delay-3">
+            <div class="card-title" data-i18n="wind_title">{{ ui_icon('compass') }} Direction du vent</div>
+            <div class="compass-wrap">
+                <svg class="compass-svg" viewBox="0 0 160 160" id="compassSvg">
+                    <circle cx="80" cy="80" r="74" fill="none" stroke="var(--border)" stroke-width="2"/>
+                    <circle cx="80" cy="80" r="60" fill="none" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 6"/>
+                    <text x="80" y="14" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-family="Syne,sans-serif" font-weight="700">N</text>
+                    <text x="80" y="152" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-family="Syne,sans-serif" font-weight="700">S</text>
+                    <text x="8" y="84" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-family="Syne,sans-serif" font-weight="700">O</text>
+                    <text x="152" y="84" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-family="Syne,sans-serif" font-weight="700">E</text>
+                    <!-- Arrow redrawn by JS -->
+                    <g id="compassArrow" transform="rotate(0,80,80)">
+                        <polygon points="80,20 86,80 80,92 74,80" fill="var(--primary)" opacity="0.9"/>
+                        <polygon points="80,92 86,80 80,140 74,80" fill="var(--text-muted)" opacity="0.5"/>
+                    </g>
+                    <circle cx="80" cy="80" r="6" fill="var(--primary)"/>
+                    <text x="80" y="115" text-anchor="middle" fill="var(--text)" font-size="11" id="windSpeedLabel">{{ meteo.vent }} m/s</text>
+                </svg>
+                <div style="font-size:0.9rem;color:var(--text-muted);text-align:center;"><span data-i18n="wind_from">Vent soufflant depuis</span> <strong id="windDirFull">...</strong></div>
+            </div>
+        </div>
+
+        <div class="card s3 card-delay-4">
+            <div class="card-title" data-i18n="sun_title">{{ sunrise_icon() }} Arc solaire</div>
+            <div class="sun-arc-wrap">
+                <svg class="sun-arc-svg" viewBox="0 0 320 140" id="sunArcSvg">
+                    <!-- Arc path -->
+                    <defs>
+                        <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.3"/>
+                            <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:1"/>
+                            <stop offset="100%" style="stop-color:#f97316;stop-opacity:0.3"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M 20,130 Q 160,10 300,130" fill="none" stroke="url(#arcGrad)" stroke-width="3" stroke-linecap="round"/>
+                    <!-- Horizon line -->
+                    <line x1="10" y1="130" x2="310" y2="130" stroke="var(--border)" stroke-width="1.5"/>
+                    <!-- Sun position marker – drawn by JS -->
+                    <circle id="sunDot" cx="160" cy="70" r="10" fill="#f59e0b" filter="drop-shadow(0 0 8px #f59e0b)"/>
+                    <text x="20" y="125" fill="var(--text-muted)" font-size="10">{{ meteo.lever_soleil }}</text>
+                    <text x="272" y="125" fill="var(--text-muted)" font-size="10">{{ meteo.coucher_soleil }}</text>
+                </svg>
+                <div style="font-size:0.85rem;color:var(--text-muted);text-align:center;">
+                    {{ sunrise_icon() }} <span data-i18n="sunrise">Lever</span> {{ meteo.lever_soleil }} &nbsp;|&nbsp; <span data-i18n="daylight">Durée du jour :</span> <strong id="daylightDuration">—</strong> &nbsp;|&nbsp; <span data-i18n="sunset">Coucher</span> {{ meteo.coucher_soleil }} {{ sunset_icon() }}
+                </div>
+            </div>
+        </div>
+
+        {% if not meteo.est_jour %}
+        <div class="card s3 card-delay-5 moon-card">
+            <div class="card-title" data-i18n="moon_title">🌙 Phase de la lune</div>
+            <div class="moon-wrap" style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+                <div class="moon-disc moon-phase-{{ meteo.phase_lune_cle }}">
+                    <div class="moon-lit"></div>
+                </div>
+                <div style="font-size:0.95rem; font-weight:600; text-align:center;">{{ meteo.phase_lune }}</div>
+                <div style="font-size:0.82rem; color:var(--text-muted); text-align:center;">
+                    <span data-i18n="illumination">Illumination</span> : {{ meteo.illumination_lune }}%
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- HOURLY CHART (multi-tab) -->
+    <div class="card s4 card-delay-5 card-section" id="section-hourly">
+        <div class="card-title">{{ ui_icon('chart') }} Prévisions 24h</div>
+        <div class="chart-tabs">
+            <button class="chart-tab active" onclick="switchChart('temp',this)" data-i18n="chart_temp">{{ ui_icon('thermometer') }} Température</button>
+            <button class="chart-tab" onclick="switchChart('hum',this)" data-i18n="chart_hum">{{ ui_icon('droplet') }} Humidité</button>
+            <button class="chart-tab" onclick="switchChart('wind',this)" data-i18n="chart_wind">{{ ui_icon('wind-meter') }} Vent</button>
+        </div>
+        <div class="chart-wrap">
+            <canvas class="chart" id="hourlyChart"></canvas>
+            <div id="chartTooltip" class="chart-tooltip"></div>
+        </div>
+        <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px; text-align:center;" data-i18n="chart_hint">Survolez le graphique pour plus de détails</div>
+    </div>
+
+    <!-- LIVE MAP -->
+    <div class="card s4 card-delay-6 card-section" id="section-map">
+        <div class="card-title">{{ ui_icon('map') }} Carte météo en direct</div>
+        <div class="map-layer-btns">
+            <button class="map-layer-btn active" onclick="setMapLayer('precipitation_new',this)" data-i18n="map_precip">{{ ui_icon('umbrella') }} Précipitations</button>
+            <button class="map-layer-btn" onclick="setMapLayer('clouds_new',this)" data-i18n="map_clouds">{{ ui_icon('cloud') }} Nuages</button>
+            <button class="map-layer-btn" onclick="setMapLayer('wind_new',this)" data-i18n="map_wind">{{ ui_icon('wind-meter') }} Vent</button>
+            <button class="map-layer-btn" onclick="setMapLayer('temp_new',this)" data-i18n="map_temp">{{ ui_icon('thermometer') }} Température</button>
+        </div>
+        <div id="weather-map"></div>
+    </div>
+
+    <!-- AI RECOMMENDATIONS (streamed dynamically via SSE) -->
+    <div class="card s4 card-delay-7 card-section" id="section-ai">
+        <div class="ai-header-row">
+            <span class="icon-lg">{{ ui_icon('ai') }}</span>
+            <div>
+                <div class="ai-section-title" data-i18n="ai_title">Recommandations IA</div>
+                <div class="ai-section-subtitle" data-i18n="ai_subtitle">Analyse intelligente des conditions</div>
+            </div>
+            <span class="ai-badge">AI Powered</span>
+        </div>
+        <div id="ai-recommendation-content" class="ai-content-wrap">
+            <!-- Skeleton loading state -->
+            <div id="ai-skeleton" style="display:flex; flex-direction:column; gap:14px;">
+                <div style="height:14px; border-radius:7px; width:92%; background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.12) 50%, var(--border) 75%); background-size: 200% 100%; animation: aiShimmer 1.4s ease-in-out infinite;"></div>
+                <div style="height:14px; border-radius:7px; width:78%; background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.12) 50%, var(--border) 75%); background-size: 200% 100%; animation: aiShimmer 1.4s ease-in-out infinite;"></div>
+                <div style="height:14px; border-radius:7px; width:85%; background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.12) 50%, var(--border) 75%); background-size: 200% 100%; animation: aiShimmer 1.4s ease-in-out infinite;"></div>
+                <div style="height:14px; border-radius:7px; width:55%; background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.12) 50%, var(--border) 75%); background-size: 200% 100%; animation: aiShimmer 1.4s ease-in-out infinite;"></div>
+                <div style="height:14px; border-radius:7px; width:88%; background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.12) 50%, var(--border) 75%); background-size: 200% 100%; animation: aiShimmer 1.4s ease-in-out infinite;"></div>
+            </div>
+            <style>@keyframes aiShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }</style>
+            <!-- AI recommendation content rendered here -->
+            <div id="ai-stream-text"></div>
+        </div>
+    </div>
+
+    <!-- PERSONALIZED AI RECOMMENDATIONS (profile-aware, separate card) -->
+    <div class="card s4 card-delay-8 card-section" style="display:none;" id="ai-personalized-card">
+        <div class="ai-header-row">
+            <span class="icon-lg">{{ ui_icon('stethoscope') }}</span>
+            <div>
+                <div class="ai-section-title" data-i18n="ai_personalized_title">Recommandations Personnalisées</div>
+                <div class="ai-section-subtitle" data-i18n="ai_personalized_subtitle">Adaptées à votre profil et votre santé</div>
+            </div>
+            <span class="ai-badge">Profil {{ ui_icon('chevron-down') }}</span>
+        </div>
+        <div id="ai-personalized-content" class="ai-content-wrap"></div>
+    </div>
+
+    <!-- BEST DAY PICKER -->
+    {% if best_days %}
+    <div class="card s5 card-delay-8 card-section">
+        <div class="card-title" data-i18n="best_day_title">{{ ui_icon('target') }} Meilleur jour de la semaine pour...</div>
+        <div class="best-day-grid">
+            {% set activities = [('running','best_day_running'), ('picnic','best_day_picnic'), ('driving','best_day_driving'), ('beach','best_day_beach')] %}
+            {% for act, label_key in activities %}
+            {% if best_days[act] %}
+            <div class="best-day-card" onclick="showActivityPlanner('{{ act }}')" style="cursor:pointer;" title="Cliquer pour voir les meilleurs moments">
+                <div class="bd-act-icon">{{ activity_icon(act) }}</div>
+                <div class="bd-act-label" data-i18n="{{ label_key }}">{{ label_key }}</div>
+                <div class="bd-day">{{ best_days[act].jour }}</div>
+                <div class="bd-cond">{{ weather_icon(best_days[act].condition, true) }} {{ best_days[act].temp_max }}°</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- INTERACTIVE ACTIVITY PLANNER (enhanced standout feature) -->
+    <div class="card s5 card-delay-9 card-section" id="section-planner">
+        <div class="card-title" data-i18n="planner_title">{{ ui_icon('calendar') }} Planificateur d'activité</div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+            <select id="plannerActivity" style="background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-size:0.95rem;">
+                <option value="running" data-i18n="planner_running">{{ activity_icon('running') }} Course à pied</option>
+                <option value="picnic" data-i18n="planner_picnic">{{ activity_icon('picnic') }} Pique-nique</option>
+                <option value="driving" data-i18n="planner_driving">{{ activity_icon('driving') }} Conduite / Route</option>
+                <option value="beach" data-i18n="planner_beach">{{ activity_icon('beach') }} Plage</option>
+            </select>
+            <button onclick="showActivityPlanner()" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; padding:8px 18px; border-radius:50px; font-weight:600; font-size:0.9rem; cursor:pointer;" data-i18n="planner_btn">Calculer les meilleurs moments</button>
+            <span style="font-size:0.8rem; color:var(--text-muted);" data-i18n="planner_hint">Basé sur tes prévisions + IA</span>
+        </div>
+        <div id="plannerResults" style="font-size:0.9rem; line-height:1.5; min-height:38px;"></div>
+    </div>
+
+    <!-- 5-DAY FORECAST -->
+    <div class="card s5 card-delay-10 card-section" id="section-forecast">
+        <div class="card-title">{{ ui_icon('calendar') }} Prévisions 5 jours</div>
+        <div class="forecast-grid">
+            {% for p in previsions %}
+            <div class="forecast-card">
+                <div class="fc-day">{{ p.jour }}</div>
+                <div class="fc-date">{{ p.date }}</div>
+                <div class="fc-icon">{{ weather_icon(p.condition, true) }}</div>
+                <div class="fc-desc">{{ p.description }}</div>
+                <div class="fc-temps">
+                    <span class="fc-max switchable">{{ p.temp_max }}°</span>
+                    <span class="fc-min switchable">{{ p.temp_min }}°</span>
+                </div>
+                <div style="margin-top:6px;font-size:0.72rem;color:var(--text-muted);">{{ ui_icon('droplet') }} {{ p.humidite }}% &bull; {{ ui_icon('wind-meter') }} {{ p.vent }}m/s</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- AIR QUALITY + UV + COMFORT -->
+    <div class="extras-grid" id="section-air-quality">
+        {% if qualite_air %}
+        <div class="card extra-card s5 card-delay-11">
+            <div class="card-title"><span data-i18n="aqi_title">{{ ui_icon('wind-meter') }} Qualité de l'air</span> <button onclick="showExplain('aqi')" class="info-btn" title="Comprendre l'AQI">{{ ui_icon('info') }}</button></div>
+            <div class="extra-val" style="color:{{ qualite_air.color }}">{{ qualite_air.aqi }}</div>
+            <div class="extra-status" style="color:{{ qualite_air.color }}">{{ aqi_icon(qualite_air.aqi) }} {{ qualite_air.label }}</div>
+            <div class="extra-detail">PM2.5: {{ qualite_air.pm25 }} µg/m³<br>PM10: {{ qualite_air.pm10 }} µg/m³<br>NO₂: {{ qualite_air.no2 }} µg/m³</div>
+        </div>
+        {% endif %}
+        {% if uv %}
+        <div class="card extra-card s5 card-delay-12">
+            <div class="card-title"><span data-i18n="uv_title">{{ ui_icon('sun') }} Index UV</span> <button onclick="showExplain('uv')" class="info-btn" title="Comprendre l'index UV">{{ ui_icon('info') }}</button>            <div class="extra-val" style="color:{{ uv.color }}">{{ uv.index }}</div>
+            <div class="extra-status" style="color:{{ uv.color }}">{{ uv.risk }}</div>
+            <div class="extra-detail">{{ uv.advice }}</div>
+        </div>
+        {% endif %}
+        <div class="card extra-card s5 card-delay-13">
+            <div class="card-title"><span data-i18n="comfort_title">{{ ui_icon('target') }} Confort global</span> <button onclick="showExplain('confort')" class="info-btn" title="Comprendre l'indice de confort">{{ ui_icon('info') }}</button></div>
+            <div class="extra-val" style="color:var(--success)">{{ comfort_index }}%</div>
+            <div class="extra-status">{% if comfort_index >= 80 %}{{ ui_icon('mood-good') }} Excellent{% elif comfort_index >= 60 %}{{ ui_icon('mood-ok') }} Correct{% else %}{{ ui_icon('mood-bad') }} Difficile{% endif %}</div>
+            <div class="extra-detail" data-i18n="comfort_detail">Basé sur T° & humidité</div>
+        </div>
+    </div>
+
+    <!-- COMPARE SHORTCUT -->
+    <div class="compare-section">
+        <a href="/compare?city1={{ meteo.ville }}&unit={{ unite|default('C') }}&lang={{ lang|default('fr') }}" class="compare-btn">{{ ui_icon('compare') }} Comparer {{ meteo.ville }} avec une autre ville</a>
+    </div>
+
+    <!-- BACK TO HOME (bottom) -->
+    <div style="text-align:center;margin-bottom:24px;">
+        <a href="/" class="back-home-btn" style="display:inline-flex;" data-i18n="back_home_sidebar">{{ ui_icon('home') }} Retour à l'accueil</a>
+    </div>
+
+    {% else %}
+    <!-- BEAUTIFUL STRUCTURAL LANDING EXPERIENCE -->
+    <div class="landing-hero" style="padding: 20px 20px 10px; margin-bottom: 15px;">
+        <div class="landing-content">
+            {{ search_form(recherche='', unite=unite|default('C'), lang=lang|default('fr'), variant='compact') }}
+
+            <!-- Landing CTA & Cities (Compact) -->
+            <div class="landing-cta-row" style="margin-bottom: 20px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                <a href="/compare?unit={{ unite|default('C') }}&lang={{ lang|default('fr') }}" class="landing-cta-btn landing-cta-secondary" style="margin: 0;">
+                    <span>{{ ui_icon('compare') }}</span> <span data-i18n="compare_btn">Comparer des villes</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weather Shimmer Placeholder -->
+    <div class="landing-shimmer" id="landingShimmer">
+        <div class="spinner"></div>
+        <p style="color:var(--text-muted);" data-i18n="loading">Chargement des données météo locales...</p>
+    </div>
+
+    <!-- Dynamic Weather Preview Dashboard -->
+    <div class="landing-dashboard" id="landingDashboard">
+        <div class="landing-preview-title" id="landingPreviewTitle" data-i18n="local_preview">Aperçu météo local</div>
+
+        <nav class="quick-nav" id="quickNav" aria-label="Accès rapide aux fonctionnalités">
+          <button class="pill-btn quick-nav-pill" data-target="landing-section-hourly"><i class="ti ti-chart-line"></i><span>Prévisions</span></button>
+          <button class="pill-btn quick-nav-pill" data-target="landing-section-forecast5"><i class="ti ti-calendar"></i><span>5 jours</span></button>
+          <button class="pill-btn quick-nav-pill" data-target="landing-section-map"><i class="ti ti-map-2"></i><span>Carte</span></button>
+          <button class="pill-btn quick-nav-pill" data-target="landing-ai-card"><i class="ti ti-bulb"></i><span>Conseils IA</span></button>
+        </nav>
+
+        <div class="landing-preview-grid">
+            <!-- 1. Current Weather Preview Card -->
+            <div class="card current-weather hero-card card-delay-1" style="display:flex; flex-direction:column; justify-content:center; align-items:center; position:relative;">
+                <div class="city-name" id="landingCityName">—</div>
+                <div class="city-country" id="landingCityDate">—</div>
+
+                <!-- Animated weather icon container -->
+                <div class="hero-weather-visual" style="margin: 15px 0; display:flex; justify-content:center; align-items:center;">
+                    <div id="landingWeatherIcon" style="display:flex; justify-content:center; align-items:center; height:100%; width:100%; z-index:2;"></div>
+                    <canvas id="landingWeatherFx" width="260" height="120" class="fx-canvas"></canvas>
+                    <div class="hero-glow-ring"></div>
+                </div>
+
+                <div class="temp-main" id="landingTemp">—</div>
+                <div class="feels-like" id="landingFeelsLike">—</div>
+                <div class="weather-desc" id="landingDesc">—</div>
+
+                <!-- Minimal details row -->
+                <div style="display:flex; gap:16px; margin-top:10px; font-size:0.85rem; color:var(--text-muted);">
+                    <span>{{ ui_icon('droplet') }} <span data-i18n="humidity">Humidité</span>: <strong id="landingHumidity" style="color:var(--text);">—</strong></span>
+                    <span>{{ ui_icon('wind-meter') }} <span data-i18n="wind">Vent</span>: <strong id="landingWind" style="color:var(--text);">—</strong></span>
+                </div>
+            </div>
+
+            <!-- 2. AI Assistant Preview Card -->
+            <div class="card ai-preview-card card-delay-2" id="landing-ai-card" style="display:flex; flex-direction:column;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                    <span class="icon-lg">{{ ui_icon('ai') }}</span>
+                    <div>
+                        <div style="font-family:'Syne',sans-serif; font-size:1.15rem; font-weight:800;" data-i18n="ai_assistant_preview">Assistant Météo IA</div>
+                        <div style="font-size:0.82rem; color:var(--text-muted);" data-i18n="ai_assistant_tag">Recommandations intelligentes</div>
+                    </div>
+                    <span class="ai-badge">AI Powered</span>
+                </div>
+                <div class="ai-collapse-wrapper" id="aiCollapseWrapper">
+                    <div id="landingAiContent" class="landing-ai-content" style="flex-grow:1; display:flex; flex-direction:column; gap:12px; justify-content:center;">
+                        <div style="text-align:center; color:var(--text-muted); font-size:0.9rem;">
+                            <p data-i18n="ai_analyzing">Analyse des conditions météo locales en cours...</p>
+                        </div>
+                    </div>
+                    <button class="ai-expand-btn" id="aiExpandBtn" onclick="toggleAiFull()">
+                        <span id="aiExpandLabel">Voir plus</span>
+                        <i class="ti ti-chevron-down" id="aiExpandIcon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Forecast Preview Section -->
+        <div class="card s4 card-delay-5 card-section" id="landing-section-hourly">
+<div class="card-title" data-i18n="hourly_title">{{ ui_icon('chart') }} Prévisions 24h</div>
+            <div class="chart-tabs">
+                <button class="chart-tab active" onclick="switchChart('temp',this)" data-i18n="chart_temp">{{ ui_icon('thermometer') }} Température</button>
+                <button class="chart-tab" onclick="switchChart('hum',this)" data-i18n="chart_hum">{{ ui_icon('droplet') }} Humidité</button>
+                <button class="chart-tab" onclick="switchChart('wind',this)" data-i18n="chart_wind">{{ ui_icon('wind-meter') }} Vent</button>
+            </div>
+            <div class="chart-wrap">
+                <canvas class="chart" id="hourlyChart"></canvas>
+                <div id="chartTooltip" class="chart-tooltip"></div>
+            </div>
+        </div>
+
+        <div class="card s5 card-delay-4 card-section" id="landing-section-forecast5">
+        <div class="card-title" data-i18n="forecast_title">{{ ui_icon('calendar') }} Prévisions 5 jours</div>
+            <div class="forecast-grid" id="landingForecastGrid"></div>
+        </div>
+
+        <!-- 4. Map Preview Section -->
+        <div class="card s4 card-delay-5 card-section" id="landing-section-map">
+<div class="card-title" data-i18n="map_title">{{ ui_icon('map') }} Carte météo en direct</div>
+            <div class="map-layer-btns">
+                <button class="map-layer-btn active" onclick="setMapLayer('precipitation_new',this)" data-i18n="map_precip">{{ ui_icon('umbrella') }} Précipitations</button>
+                <button class="map-layer-btn" onclick="setMapLayer('clouds_new',this)" data-i18n="map_clouds">{{ ui_icon('cloud') }} Nuages</button>
+                <button class="map-layer-btn" onclick="setMapLayer('wind_new',this)" data-i18n="map_wind">{{ ui_icon('wind-meter') }} Vent</button>
+                <button class="map-layer-btn" onclick="setMapLayer('temp_new',this)" data-i18n="map_temp">{{ ui_icon('thermometer') }} Température</button>
+            </div>
+            <div id="weather-map"></div>
+        </div>
+    </div>
+
+    <!-- 5. Feature Showcase Section -->
+    <div class="feature-showcase-title" data-i18n="features_title">Fonctionnalités Clés</div>
+    <div class="feature-showcase-subtitle" data-i18n="features_subtitle">Une plateforme météo complète et intelligente conçue pour vous.</div>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon-wrapper">{{ ui_icon('ai') }}</div>
+            <div class="feature-title" data-i18n="f_ai_title">Assistant IA Météo</div>
+            <div class="feature-description" data-i18n="f_ai_desc">Recommandations intelligentes sur votre tenue, vos activités de plein air, votre santé et vos trajets selon les conditions réelles.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon-wrapper">{{ ui_icon('map') }}</div>
+            <div class="feature-title" data-i18n="f_map_title">Cartes Interactives</div>
+            <div class="feature-description" data-i18n="f_map_desc">Visualisez les précipitations, le vent, la couverture nuageuse et la température à l'aide de couches cartographiques détaillées.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon-wrapper">{{ ui_icon('chart') }}</div>
+            <div class="feature-title" data-i18n="f_charts_title">Analyses & Graphiques</div>
+            <div class="feature-description" data-i18n="f_charts_desc">Analysez l'évolution de la température, de l'humidité et du vent sur les prochaines 24h grâce à des graphiques dynamiques.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon-wrapper">{{ ui_icon('wind-meter') }}</div>
+            <div class="feature-title" data-i18n="f_aqi_title">Qualité de l'air & UV</div>
+            <div class="feature-description" data-i18n="f_aqi_desc">Suivez les concentrations de polluants fins (PM2.5, PM10) et l'indice UV en temps réel pour planifier vos journées en toute sécurité.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon-wrapper">{{ ui_icon('target') }}</div>
+            <div class="feature-title" data-i18n="f_planner_title">Planificateur d'activité</div>
+            <div class="feature-description" data-i18n="f_planner_desc">Laissez l'algorithme calculer les meilleurs moments de la semaine pour votre jogging, votre pique-nique ou vos trajets routiers.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon-wrapper">{{ ui_icon('world') }}</div>
+            <div class="feature-title" data-i18n="f_search_title">Recherche Vocale & Autocomplete</div>
+            <div class="feature-description" data-i18n="f_search_desc">Trouvez instantanément n'importe quelle ville dans le monde grâce à l'autocomplétion ou lancez simplement votre recherche à voix haute.</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <footer class="footer">
+        <p>{{ ui_icon('rocket') }} Météo Express Pro &bull; OpenWeatherMap &bull; Groq AI &bull; City data &copy; <a href="https://www.geonames.org" target="_blank" rel="noopener" style="color:var(--primary);">GeoNames</a> (CC BY 4.0) &bull; Développé par <strong>Cheick Yacouba Soukouna</strong></p>
+        <p style="margin-top:6px;" id="footerDate"></p>
+    </footer>
+</div>
+
+<!-- EDUCATIONAL EXPLAIN MODAL -->
+<div id="explainModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:99999; align-items:center; justify-content:center; padding:20px;" onclick="if (event.target.id === 'explainModal') hideExplain()">
+    <div onclick="event.stopImmediatePropagation()" style="background:var(--card); border:1px solid var(--card-border); border-radius:20px; max-width:460px; width:100%; padding:22px 24px; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div id="explainTitle" style="font-family:'Syne',sans-serif; font-size:1.15rem; font-weight:800; color:var(--primary);"></div>
+            <button onclick="hideExplain()" style="background:none; border:none; font-size:1.6rem; line-height:1; color:var(--text-muted); cursor:pointer;">{{ ui_icon('close') }}</button>
+        </div>
+        <div id="explainBody" style="font-size:0.95rem; line-height:1.55; color:var(--text);"></div>
+        <div style="margin-top:16px; font-size:0.78rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">
+            {{ ui_icon('bulb') }} <span data-i18n="explain_hint">Ces explications t'aident à mieux comprendre l'impact météo sur toi.</span>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Data injection (MUST be before app.js) -->
+<script>
+window.HOURLY = {{ hourly|default([])|tojson }};
+window.WIND_DEG = {{ meteo.vent_deg|default(0) if meteo and not meteo.erreur else 270 }};
+window.LAT = {{ meteo.lat|default(0) if meteo and not meteo.erreur else 0 }};
+window.LON = {{ meteo.lon|default(0) if meteo and not meteo.erreur else 0 }};
+window.SUNRISE = "{{ meteo.lever_soleil|default('06:00') if meteo else '06:00' }}";
+window.COUCHER = "{{ meteo.coucher_soleil|default('18:00') if meteo else '18:00' }}";
+window.PREVISIONS = {{ previsions|default([])|tojson }};
+window.BEST_DAYS = {{ best_days|default({})|tojson }};
+window.HAS_WEATHER = {{ 1 if meteo and not meteo.erreur else 0 }};
+window.CURRENT_LANG = "{{ lang|default('fr') }}";
+window.CURRENT_CONDITION = {% if meteo and not meteo.erreur %}"{{ meteo.condition }}"{% else %}"Clear"{% endif %};
+</script>
+
+{% if meteo and not meteo.erreur %}
+<script>
+window.WEATHER_RAW = {
+    temp_c: {{ meteo.temperature if unite == 'C' else ((meteo.temperature - 32) * 5 / 9) | round | int }},
+    feels_c: {{ meteo.temperature_reelle if unite == 'C' else ((meteo.temperature_reelle - 32) * 5 / 9) | round | int }},
+    min_c: {{ meteo.temp_min if unite == 'C' else ((meteo.temp_min - 32) * 5 / 9) | round | int }},
+    max_c: {{ meteo.temp_max if unite == 'C' else ((meteo.temp_max - 32) * 5 / 9) | round | int }},
+    hourly_c: [{% for h in hourly %}{{ h.temp if unite == 'C' else ((h.temp - 32) * 5 / 9) | round | int }}{% if not loop.last %},{% endif %}{% endfor %}],
+    previsions: [{% for p in previsions %}{
+        min_c: {{ p.temp_min if unite == 'C' else ((p.temp_min - 32) * 5 / 9) | round | int }},
+        max_c: {{ p.temp_max if unite == 'C' else ((p.temp_max - 32) * 5 / 9) | round | int }}
+    }{% if not loop.last %},{% endif %}{% endfor %}]
+};
+window.CURRENT_UNIT = '{{ unite }}';
+</script>
+{% endif %}
+
+<!-- Leaflet JS (for map) -->
+<script src="/static/vendor/leaflet/leaflet.js"></script>
+<!-- html2canvas for share image feature -->
+<script src="/static/vendor/html2canvas/html2canvas.min.js"></script>
+
+<script type="module" src="/static/js/init.js"></script>
+
+<!-- Phase 2: Stream AI recommendations after page load -->
+{% if meteo and not meteo.erreur %}
+<script type="module">
+import * as IconMap from '/static/js/icon-map.js';
+(function() {
+    var city    = {{ meteo.ville|tojson }};
+    var weather = {{ (meteo.temperature|string + '°C, ' + meteo.condition + ', Vent ' + meteo.vent|string + ' m/s, Humidité ' + meteo.humidite|string + '%, Ressenti ' + meteo.temperature_reelle|string + '°C')|tojson }};
+    var lang    = {{ lang|default('fr')|tojson }};
+
+    var skeleton  = document.getElementById('ai-skeleton');
+    var streamDiv = document.getElementById('ai-stream-text');
+    if (!skeleton || !streamDiv) return;
+
+    var url = '/api/ai-recommendation?city=' + encodeURIComponent(city)
+            + '&weather=' + encodeURIComponent(weather)
+            + '&lang='    + encodeURIComponent(lang);
+
+    fetch(url).then(function(response) {
+        var reader  = response.body.getReader();
+        var decoder = new TextDecoder();
+        var rawJson = '';
+
+        function pump() {
+            return reader.read().then(function(result) {
+                if (result.done) {
+                    skeleton.style.display = 'none';
+                    renderCards(rawJson);
+                    return;
+                }
+                var text  = decoder.decode(result.value, { stream: true });
+                var lines = text.split('\n');
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i];
+                    if (line.indexOf('data: ') === 0) {
+                        var chunk = line.substring(6);
+                        if (chunk === '[DONE]') {
+                            skeleton.style.display = 'none';
+                            renderCards(rawJson);
+                            return;
+                        }
+                        rawJson += chunk;
+                    }
+                }
+                return pump();
+            });
+        }
+
+        return pump();
+    }).catch(function(err) {
+        console.error('[AI Stream] Error:', err);
+        skeleton.style.display = 'none';
+        streamDiv.style.display = 'block';
+        streamDiv.innerHTML = '<div style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); font-size: 0.95rem;">' + (lang === 'fr'
+            ? 'Recommandations IA temporairement indisponibles.'
+            : 'AI recommendations temporarily unavailable.') + '</div>';
+    });
+
+    function renderCards(raw) {
+        streamDiv.style.display = 'block';
+        try {
+            var rec = JSON.parse(raw);
+            var html = '';
+
+            // 1. Summary
+            if (rec.summary) {
+                html += '<div style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); margin-bottom: 8px; font-size: 0.95rem;">\u201C' + IconMap.ses(rec.summary) + '\u201D</div>';
+            }
+
+            // 2. Clothing
+            if (rec.clothing && rec.clothing.length) {
+                html += '<div style="margin-bottom: 8px;"><strong>' + IconMap.clothingIcon('jacket') + ' ' + (lang === 'en' ? 'What to wear' : 'Tenue sugg\u00e9r\u00e9e') + ' :</strong>';
+                html += '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">';
+                rec.clothing.forEach(function(item) {
+                    html += '<span style="display:inline-flex; align-items:center; gap:6px; background: var(--card-border); border: 1px solid var(--border); padding: 4px 10px; border-radius: 8px; font-size: 0.82rem; color: var(--text);">' + IconMap.guessClothingIcon(item) + ' ' + IconMap.ses(item) + '</span>';
+                });
+                html += '</div></div>';
+            }
+
+            // 3. Activities
+            if (rec.activities && rec.activities.activities && rec.activities.activities.length) {
+                html += '<div style="margin-bottom: 8px;"><strong>' + IconMap.activityIcon('running') + ' ' + (lang === 'en' ? 'Activities & Advice' : 'Activit\u00e9s & Conseils') + ' :</strong>';
+                html += '<ul style="margin: 6px 0 0 16px; padding: 0; font-size: 0.88rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px;">';
+                rec.activities.activities.forEach(function(act) {
+                    html += '<li>' + IconMap.guessActivityIcon(act) + ' ' + IconMap.ses(act) + '</li>';
+                });
+                if (rec.travel) html += '<li>' + IconMap.activityIcon('driving') + ' ' + IconMap.ses(rec.travel) + '</li>';
+                html += '</ul></div>';
+            }
+
+            // 4. Pack
+            if (rec.pack && rec.pack.length) {
+                html += '<div style="margin-bottom: 8px; font-size: 0.88rem; color: var(--text-muted); display:flex; align-items:center; gap:6px;"><strong>' + IconMap.uiIcon('backpack') + ' ' + (lang === 'en' ? 'To bring' : '\u00c0 emporter') + ' :</strong> ' + rec.pack.map(IconMap.ses).join(' \u2022 ') + '</div>';
+            }
+
+            // 5. Comfort Index
+            if (rec.comfort_index) {
+                html += '<div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);">';
+                html += '<div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:4px; color:var(--text-muted);">';
+                html += '<span>' + (lang === 'en' ? 'Comfort Index' : 'Indice de confort') + '</span>';
+                html += '<strong style="color:var(--text);">' + rec.comfort_index + '%</strong>';
+                html += '</div>';
+                html += '<div style="height:6px; background: var(--border); border-radius:10px; overflow:hidden;">';
+                html += '<div style="height:100%; width:' + rec.comfort_index + '%; background:linear-gradient(90deg, var(--primary), var(--accent));"></div>';
+                html += '</div></div>';
+            }
+
+            streamDiv.innerHTML = html;
+
+            // 6. Personalized advice (profile-aware — separate card)
+            if (rec.personalized_advice && rec.personalized_advice.length) {
+                var pCard = document.getElementById('ai-personalized-card');
+                var pContent = document.getElementById('ai-personalized-content');
+                if (pCard) pCard.style.display = '';
+                if (pContent) {
+                    var phtml = '';
+                    rec.personalized_advice.forEach(function(advice) {
+                        phtml += '<div style="padding: 10px 12px; background: rgba(91, 124, 250, 0.08); border-radius: 10px; border-left: 3px solid var(--primary); font-size: 0.9rem; color: var(--text);">' + IconMap.ses(advice) + '</div>';
+                    });
+                    phtml += '<div style="margin-top:4px; font-size:0.75rem; color:var(--text-muted); font-style:italic;">' + (lang === 'en' ? 'This is general guidance, not medical advice.' : 'Ceci est un conseil général, pas un avis médical.') + '</div>';
+                    pContent.innerHTML = phtml;
+                }
+            }
+        } catch (e) {
+            console.error('[AI] JSON parse error:', e);
+            streamDiv.innerHTML = '<div style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); font-size: 0.95rem;">' + (lang === 'fr'
+                ? 'R\u00e9ponse IA invalide.'
+                : 'Invalid AI response.') + '</div>';
+        }
+    }
+})();
+</script>
+{% endif %}
+
+{% if meteo and not meteo.erreur %}
+<script>
+window._wbWeather = {
+  ville: {{ meteo.ville|tojson }},
+  pays: {{ meteo.pays|tojson }},
+  temperature: {{ meteo.temperature }},
+  condition: {{ meteo.condition|tojson }},
+  humidite: {{ meteo.humidite }},
+  vent: {{ meteo.vent }},
+  description: {{ meteo.description|tojson }}
+};
+</script>
+{% endif %}
+
+<!-- Weather Chatbot -->
+<div class="wb-label" data-i18n="chatbot_label">Assistant météo</div>
+<button class="wb-btn" id="wbBtn" aria-label="Ouvrir le chatbot météo">
+  <i class="ti ti-message-chatbot"></i>
+</button>
+
+<div class="wb-panel" id="wbPanel" aria-hidden="true">
+  <div class="wb-header">
+    <div class="wb-header-icon"><i class="ti ti-cloud"></i></div>
+    <div>
+      <p class="wb-name" data-i18n="chatbot_name">Assistant Météo</p>
+      <p class="wb-status"><span class="wb-dot"></span><span data-i18n="chatbot_status">En ligne</span></p>
+    </div>
+    <button class="wb-close" id="wbClose" aria-label="Fermer"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="wb-messages" id="wbMessages">
+    <div class="wb-msg wb-bot" data-i18n="chatbot_welcome">Bonjour ! Posez-moi n'importe quelle question sur la météo</div>
+  </div>
+  <div class="wb-input-row">
+    <input class="wb-input" id="wbInput" type="text" data-i18n-ph="chatbot_placeholder" placeholder="Posez une question..." />
+    <button class="wb-send" id="wbSend"><i class="ti ti-send"></i></button>
+  </div>
+</div>
+
+</body>
+</html>

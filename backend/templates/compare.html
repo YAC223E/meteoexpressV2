@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Météo Express Pro – Comparaison</title>
+    <link rel="stylesheet" href="/static/fonts/google-fonts.css">
+    <link rel="stylesheet" href="/static/vendor/tabler/tabler-icons.min.css">
+    <link rel="stylesheet" href="/static/vendor/flag-icons/css/flag-icons.min.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        :root {
+            --primary:#4fc3f7;--primary-dark:#29b6f6;--accent:#fa8c5b;
+            --success:#2dd4a7;--warning:#f5c518;--danger:#f25c5c;
+            --glass-bg:rgba(255,255,255,0.08);--glass-bg-hover:rgba(255,255,255,0.13);
+            --glass-border:rgba(255,255,255,0.15);--glass-shadow:0 8px 32px rgba(0,0,0,0.37);
+            --glass-blur:blur(16px);
+            --text-primary:rgba(255,255,255,0.95);--text-secondary:rgba(255,255,255,0.65);
+            --text-muted:rgba(255,255,255,0.40);
+            --card:var(--glass-bg);--card-border:var(--glass-border);--text:var(--text-primary);
+            --border:rgba(255,255,255,0.10);--shadow:var(--glass-shadow);--r:20px;--r-sm:12px;
+            --transition-fast:0.18s ease;--transition-med:0.35s cubic-bezier(0.4,0,0.2,1);
+        }
+        [data-theme="light"] {
+            --glass-bg:rgba(255,255,255,0.55);--glass-bg-hover:rgba(255,255,255,0.70);
+            --glass-border:rgba(0,0,0,0.10);--glass-shadow:0 8px 32px rgba(0,0,0,0.12);
+            --text-primary:rgba(15,23,42,0.95);--text-secondary:rgba(15,23,42,0.65);
+            --text-muted:rgba(15,23,42,0.40);
+            --card:var(--glass-bg);--card-border:var(--glass-border);--text:var(--text-primary);
+            --border:rgba(0,0,0,0.10);--shadow:var(--glass-shadow);
+        }
+        * { margin:0;padding:0;box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%); min-height:100vh; color:var(--text-primary); }
+        [data-theme="light"] body { background:linear-gradient(135deg,#dbeafe 0%,#bfdbfe 50%,#93c5fd 100%); }
+        .wrap { max-width:1240px;margin:0 auto;padding:20px; }
+        .header { display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px; }
+        .logo { font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:10px; }
+        .logo-icon { font-size:2rem;animation:float 4s ease-in-out infinite; }
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        .btn { background:var(--glass-bg);border:1px solid var(--glass-border);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border-radius:50px;padding:8px 18px;color:var(--text-primary);cursor:pointer;font-size:0.9rem;font-family:'Inter',sans-serif;font-weight:500;transition:all 0.25s;display:flex;align-items:center;gap:6px;text-decoration:none; }
+        .btn:hover { background:var(--primary);color:#fff;border-color:var(--primary);transform:translateY(-1px); }
+        .btn-back { background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none; }
+        .btn-back:hover { opacity:0.9; }
+
+        .search-form { display:flex;gap:10px;max-width:800px;margin:0 auto 32px;flex-wrap:wrap; }
+        .search-input { flex:1;padding:12px 18px;border:2px solid var(--glass-border);border-radius:50px;font-size:1rem;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);color:var(--text-primary);outline:none;font-family:'Inter',sans-serif;min-width:200px; }
+        .search-input::placeholder { color:var(--text-muted); }
+        .search-input:focus { border-color:var(--primary); }
+        .search-vs { display:flex;align-items:center;font-size:1.3rem;font-weight:800;color:var(--text-muted);padding:0 4px; }
+        .search-btn { background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;padding:12px 26px;border-radius:50px;font-size:1rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap; }
+
+        .compare-grid { display:grid;grid-template-columns:1fr 1fr;gap:24px; }
+        @media(max-width:750px) { .compare-grid{grid-template-columns:1fr;} }
+
+        .city-panel { background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:var(--r);box-shadow:var(--glass-shadow);overflow:hidden;animation:fadeUp 0.5s ease both;transition:background var(--transition-med),transform var(--transition-med); }
+        .city-panel:hover { background:var(--glass-bg-hover); }
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .city-panel-header { padding:24px;text-align:center;background:linear-gradient(135deg,rgba(79,195,247,0.1),rgba(250,140,91,0.05)); }
+        .panel-city { font-family:'Outfit',sans-serif;font-size:1.8rem;font-weight:800; }
+        .panel-emoji { font-size:4rem;margin:12px 0;display:inline-block;animation:float 4s ease-in-out infinite; }
+        .panel-temp { font-family:'Outfit',sans-serif;font-size:3.5rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+        .panel-desc { font-size:1.1rem;font-weight:600;color:var(--text-muted);margin-top:6px; }
+        .panel-body { padding:20px; }
+        .stat-row { display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border); }
+        .stat-row:last-child { border-bottom:none; }
+        .stat-label { font-size:0.85rem;color:var(--text-muted);display:flex;align-items:center;gap:6px; }
+        .stat-val { font-size:0.95rem;font-weight:700; }
+        .winner { color:var(--success); }
+        .loser  { color:var(--text-muted); }
+
+        .vs-bar { display:flex;align-items:center;justify-content:center;padding:16px;gap:12px;font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:var(--text-muted); }
+
+        .no-data { text-align:center;padding:40px;color:var(--text-muted); }
+
+        .page-title { font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;text-align:center;margin-bottom:24px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header class="header">
+        <a href="/" class="logo"><span class="logo-icon">{{ weather_icon('Clouds', true) }}</span><span>Météo Express <span style="font-size:0.55em;opacity:0.7;">Pro</span></span></a>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <a href="/" class="btn btn-back" data-i18n="back_home">{{ ui_icon('home') }} Accueil</a>
+            <button class="btn" onclick="toggleTheme()"><span id="theme-icon">{{ ui_icon('theme-dark') }}</span></button>
+
+            <!-- Language Switcher -->
+            <div class="lang-switch" style="display:flex; background:var(--glass-bg); backdrop-filter:var(--glass-blur); border:1px solid var(--glass-border); border-radius:50px; padding:2px; font-size:0.8rem;">
+                <button id="lang-fr" onclick="setLanguage('fr')" class="lang-btn {{ 'active' if lang == 'fr' else '' }}">{{ flag_icon('fr') }}</button>
+                <button id="lang-en" onclick="setLanguage('en')" class="lang-btn {{ 'active' if lang == 'en' else '' }}">{{ flag_icon('gb') }}</button>
+            </div>
+        </div>
+    </header>
+
+    <h1 class="page-title" data-i18n="compare_title">{{ ui_icon('compare') }} Comparaison météo</h1>
+
+    <form action="/compare" method="get" class="search-form">
+        <input type="text" name="city1" class="search-input" placeholder="Ville 1 (ex: Paris)" value="{{ city1 }}">
+        <span class="search-vs">VS</span>
+        <input type="text" name="city2" class="search-input" placeholder="Ville 2 (ex: Tokyo)" value="{{ city2 }}">
+        <input type="hidden" name="unit" value="{{ unite|default('C') }}">
+        <input type="hidden" name="lang" value="{{ lang|default('fr') }}">
+        <button type="submit" class="search-btn" data-i18n="search_btn">Comparer</button>
+    </form>
+
+    {% if data1 and data2 %}
+    <div class="compare-grid">
+        {% for d, err in [(data1, err1), (data2, err2)] %}
+        {% set m = d.meteo if d else None %}
+        <div class="city-panel" style="animation-delay:{{ '0.05s' if loop.first else '0.1s' }}">
+            {% if err %}
+            <div class="no-data">{{ ui_icon('cross-circle') }} {{ err }}</div>
+            {% elif m %}
+            <div class="city-panel-header">
+                <div class="panel-city">{{ m.ville }}, {{ m.pays }}</div>
+                <div class="panel-emoji">{{ weather_icon(m.condition, sunrise=m.lever_soleil, sunset=m.coucher_soleil) }}</div>
+                <div class="panel-temp">{{ m.temperature }}°{{ m.unite }}</div>
+                <div class="panel-desc">{{ m.description }}</div>
+            </div>
+            <div class="panel-body">
+                {% set m1 = data1.meteo %}
+                {% set m2 = data2.meteo %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('thermometer') }} Ressenti</span>
+                    <span class="stat-val {% if loop.first %}{% if m1.temperature_reelle >= m2.temperature_reelle %}winner{% else %}loser{% endif %}{% else %}{% if m2.temperature_reelle >= m1.temperature_reelle %}winner{% else %}loser{% endif %}{% endif %}">{{ m.temperature_reelle }}°</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('chevron-up') }} Max / Min</span>
+                    <span class="stat-val">{{ m.temp_max }}° / {{ m.temp_min }}°</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('droplet') }} Humidité</span>
+                    <span class="stat-val {% if loop.first %}{% if m1.humidite <= m2.humidite %}winner{% else %}loser{% endif %}{% else %}{% if m2.humidite <= m1.humidite %}winner{% else %}loser{% endif %}{% endif %}">{{ m.humidite }}%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('wind-meter') }} Vent</span>
+                    <span class="stat-val {% if loop.first %}{% if m1.vent <= m2.vent %}winner{% else %}loser{% endif %}{% else %}{% if m2.vent <= m1.vent %}winner{% else %}loser{% endif %}{% endif %}">{{ m.vent }} m/s</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('eye') }} Visibilité</span>
+                    <span class="stat-val {% if loop.first %}{% if m1.visibilite >= m2.visibilite %}winner{% else %}loser{% endif %}{% else %}{% if m2.visibilite >= m1.visibilite %}winner{% else %}loser{% endif %}{% endif %}">{{ m.visibilite }} km</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('pressure') }} Pression</span>
+                    <span class="stat-val">{{ m.pression }} hPa</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('cloud') }} Nuages</span>
+                    <span class="stat-val">{{ m.nuages }}%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ sunrise_icon() }} Lever / Coucher</span>
+                    <span class="stat-val">{{ m.lever_soleil }} / {{ m.coucher_soleil }}</span>
+                </div>
+                {% if d.qualite_air %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('wind-meter') }} Qualité air</span>
+                    <span class="stat-val" style="color:{{ d.qualite_air.color }}">{{ aqi_icon(d.qualite_air.aqi) }} {{ d.qualite_air.label }}</span>
+                </div>
+                {% endif %}
+                {% if d.uv %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('sun') }} UV</span>
+                    <span class="stat-val" style="color:{{ d.uv.color }}">{{ d.uv.index }} – {{ d.uv.risk }}</span>
+                </div>
+                {% endif %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ ui_icon('target') }} Confort</span>
+                    <span class="stat-val {% if loop.first %}{% if data1.comfort_index >= data2.comfort_index %}winner{% else %}loser{% endif %}{% else %}{% if data2.comfort_index >= data1.comfort_index %}winner{% else %}loser{% endif %}{% endif %}">{{ d.comfort_index }}%</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% elif city1 or city2 %}
+    <div class="no-data" style="padding:60px;font-size:1.1rem;">Entrez deux villes pour commencer la comparaison.</div>
+    {% else %}
+    <div class="no-data" style="padding:60px;">
+        <div style="font-size:4rem;margin-bottom:16px;">{{ ui_icon('compare') }}</div>
+        <div style="font-size:1.2rem;font-weight:700;">Comparez deux villes en temps réel</div>
+        <div style="margin-top:8px;color:var(--text-muted);">Entrez deux villes dans les champs ci-dessus</div>
+    </div>
+    {% endif %}
+
+    <div style="text-align:center;margin-top:32px;">
+        <a href="/" class="btn btn-back">{{ ui_icon('home') }} Retour à l'accueil</a>
+    </div>
+</div>
+<script>
+function initTheme(){const s=localStorage.getItem('mxTheme');const d=s?s==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.setAttribute('data-theme',d?'dark':'light');const ic=document.getElementById('theme-icon');if(ic)ic.innerHTML=d?'<i class="ti ti-sun"><\\/i>':'<i class="ti ti-moon"><\\/i>';return false;}
+function toggleTheme(){const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('mxTheme',n);const ic=document.getElementById('theme-icon');if(ic)ic.innerHTML=n==='dark'?'<i class="ti ti-sun"><\\/i>':'<i class="ti ti-moon"><\\/i>';return false;}
+document.addEventListener('DOMContentLoaded',initTheme);
+</script>
+<script>
+// Minimal language support for compare page
+const TRANSLATIONS = {
+  fr: {
+    "back_home": "Accueil",
+    "compare_title": "Comparaison météo",
+    "search_btn": "Comparer"
+  },
+  en: {
+    "back_home": "Home",
+    "compare_title": "Weather Comparison",
+    "search_btn": "Compare"
+  }
+};
+
+let currentLang = '{{ lang|default("fr") }}';
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('mxLang', lang);
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  const active = document.getElementById('lang-' + lang);
+  if (active) active.classList.add('active');
+
+  // Reload to apply backend lang for data
+  const params = new URLSearchParams(window.location.search);
+  params.set('lang', lang);
+  window.location.search = params.toString();
+}
+
+function applyLanguage(lang) {
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.fr;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key] === undefined) return;
+    if (el._mxIconPrefix === undefined) {
+      const m = el.innerHTML.match(/^\s*(<i class="ti[^"]*"[^>]*><\/i>|<img class="weather-icon-meteocon"[^>]*>|<span class="fi[^"]*"[^>]*><\/span>)/);
+      el._mxIconPrefix = m ? m[1] : '';
+    }
+    el.innerHTML = (el._mxIconPrefix ? el._mxIconPrefix + ' ' : '') + t[key];
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // set active
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+  const btn = document.getElementById('lang-' + currentLang);
+  if (btn) btn.classList.add('active');
+
+  applyLanguage(currentLang);
+});
+</script>
+</body>
+</html>

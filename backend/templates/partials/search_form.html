@@ -1,0 +1,38 @@
+{% macro search_form(recherche='', unite='C', lang='fr', variant='full') %}
+{% if variant == 'compact' %}<div class="landing-search-wrap" style="margin-top: 10px; margin-bottom: 15px;">{% endif %}
+<form action="/" method="get" class="search-wrap" id="searchForm">
+    <div class="search-input-wrap">
+        <span class="search-icon">{{ ui_icon('search') }}</span>
+        <input type="text" name="city" id="cityInput" class="search-input"
+            placeholder="Rechercher une ville... (Paris, Tokyo, Bamako)"
+            data-i18n="search_placeholder"
+            value="{{ recherche }}" autocomplete="off">
+        <button type="button" class="voice-btn" id="voiceBtn" onclick="startVoice()" title="Recherche vocale">{{ ui_icon('mic') }}</button>
+        <div class="autocomplete-list" id="autocompleteList"></div>
+    </div>
+    <input type="hidden" name="unit" id="unitInput" value="{{ unite }}">
+    <input type="hidden" name="lang" id="langInput" value="{{ lang }}">
+    <button type="submit" class="search-btn" data-i18n="search_btn">Chercher</button>
+</form>
+{% if variant == 'compact' %}</div>{% endif %}
+{% if variant == 'full' %}
+<div class="quick-cities">
+    <a href="/?city=Bamako&unit={{ unite }}&lang={{ lang }}"   class="city-chip">{{ flag_icon('ml') }} Bamako</a>
+    <a href="/?city=Paris&unit={{ unite }}&lang={{ lang }}"    class="city-chip">{{ flag_icon('fr') }} Paris</a>
+    <a href="/?city=Dakar&unit={{ unite }}&lang={{ lang }}"    class="city-chip">{{ flag_icon('sn') }} Dakar</a>
+    <a href="/?city=Tokyo&unit={{ unite }}&lang={{ lang }}"    class="city-chip">{{ flag_icon('jp') }} Tokyo</a>
+    <a href="/?city=New+York&unit={{ unite }}&lang={{ lang }}" class="city-chip">{{ flag_icon('us') }} New York</a>
+    <a href="/?city=London&unit={{ unite }}&lang={{ lang }}"   class="city-chip">{{ flag_icon('gb') }} Londres</a>
+    <a href="/?city=Dubai&unit={{ unite }}&lang={{ lang }}"    class="city-chip">{{ flag_icon('ae') }} Dubai</a>
+    <button class="city-chip" onclick="geolocate()" style="cursor:pointer;">{{ ui_icon('locate-me') }} <span data-i18n="my_location">Ma position</span></button>
+</div>
+{% elif variant == 'compact' %}
+<div class="landing-cities">
+    <a href="/?city=Paris&lang={{ lang }}" class="landing-city">{{ flag_icon('fr') }} Paris</a>
+    <a href="/?city=Tokyo&lang={{ lang }}" class="landing-city">{{ flag_icon('jp') }} Tokyo</a>
+    <a href="/?city=Bamako&lang={{ lang }}" class="landing-city">{{ flag_icon('ml') }} Bamako</a>
+    <a href="/?city=New+York&lang={{ lang }}" class="landing-city">{{ flag_icon('us') }} New York</a>
+    <a href="/?city=Dakar&lang={{ lang }}" class="landing-city">{{ flag_icon('sn') }} Dakar</a>
+</div>
+{% endif %}
+{% endmacro %}

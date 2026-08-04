@@ -1,10 +1,51 @@
+<div align="center">
+
 # Météo Express Pro
 
-> Tableau de bord météo moderne, riche en fonctionnalités et assisté par IA, construit avec Flask, Jinja2 et JavaScript vanilla.
+**Tableau de bord météo moderne, riche en fonctionnalités et assisté par IA**
 
-Une application météo complète avec recommandations intelligentes via Groq LLM, chatbot conversationnel, authentification utilisateur avec profils personnalisés, et interface bilingue FR/EN.
+Application météo complète avec recommandations intelligentes propulsées par Groq LLM, un chatbot conversationnel, une authentification utilisateur avec profils personnalisés, et une interface bilingue français / anglais.
+Construite avec Flask, Jinja2 et JavaScript vanilla.
+
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/docs/Web/HTML)
+[![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](https://developer.mozilla.org/docs/Web/CSS)
+[![Jinja](https://img.shields.io/badge/Jinja-B41717?style=for-the-badge&logo=jinja&logoColor=white)](https://jinja.palletsprojects.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)](https://leafletjs.com/)
+[![Groq](https://img.shields.io/badge/Groq-F55036?style=for-the-badge&logo=groq&logoColor=white)](https://groq.com/)
+[![OpenWeatherMap](https://img.shields.io/badge/OpenWeatherMap-EB6E4B?style=for-the-badge)](https://openweathermap.org/)
+[![PWA](https://img.shields.io/badge/PWA-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
 
 **Développé par Cheick Yacouba Soukouna**
+
+</div>
+
+---
+
+## Table des matières
+
+- [Aperçu du projet](#aperçu-du-projet)
+- [Fonctionnalités](#fonctionnalités)
+- [Captures d'écran](#captures-décran)
+- [Clés API](#clés-api)
+- [Installation](#installation)
+- [Tests](#tests)
+- [Structure du projet](#structure-du-projet)
+- [Routes principales](#routes-principales)
+- [Stack technique](#stack-technique)
+- [Notes importantes](#notes-importantes)
+- [Base de données](#base-de-données)
+- [Crédits](#crédits)
+- [Remerciements](#remerciements)
+
+---
+
+## Aperçu du projet
+
+Météo Express Pro est une application web météo complète, pensée pour aller bien au-delà des données météorologiques classiques. Elle combine intelligence artificielle, personnalisation par profil utilisateur, visualisations interactives et support hors ligne pour offrir un tableau de bord météo moderne et agréable à utiliser, disponible en français et en anglais.
 
 ---
 
@@ -14,41 +55,41 @@ Une application météo complète avec recommandations intelligentes via Groq LL
 
 - Conditions actuelles détaillées (température ressentie, humidité, vent, pression, visibilité, lever/coucher du soleil, couverture nuageuse)
 - Graphiques interactifs 24h (température, humidité, vent) avec infobulle au survol
-- Prévisions 5 jours avec agrégation intelligente
+- Prévisions à 5 jours avec agrégation intelligente
 - Qualité de l'air (AQI) avec détails PM2.5 / PM10 / NO₂ / O₃
-- Indice UV avec niveaux de risque et conseils
+- Indice UV avec niveaux de risque et conseils associés
 - Carte interactive (Leaflet) avec couches météo OpenWeatherMap (précipitations, nuages, vent, température)
 - Conversion °C / °F
 
-### IA & Recommandations intelligentes
+### IA et recommandations intelligentes
 
-- **Groq LLM (LLaMA 3.3 70B)** pour des recommandations naturelles en streaming SSE
+- Groq LLM (LLaMA 3.3 70B) pour des recommandations naturelles en streaming SSE
 - Suggestions vestimentaires selon la météo
 - Idées d'activités adaptées au moment de la journée
 - Alertes santé (chaleur, froid, vent, humidité)
 - Conseils voyage et conduite
-- Indice de confort personnel (T° + humidité)
+- Indice de confort personnel (température + humidité)
 - Meilleur jour de la semaine pour 4 activités (course, pique-nique, conduite, plage)
 - Planificateur d'activité interactif
 - Conseils avancés : meilleures heures, équipement à emporter, sécurité
-- Fallback automatique vers le moteur WeatherAI basé sur des règles si Groq indisponible
-- Backoff automatique de 5 min en cas de quota dépassé
+- Fallback automatique vers le moteur WeatherAI basé sur des règles si Groq est indisponible
+- Backoff automatique de 5 minutes en cas de quota dépassé
 
-### Recommandations Personnalisées (Profil Utilisateur)
+### Recommandations personnalisées selon le profil
 
 - Adaptation des conseils selon l'âge, la profession, les allergies et les conditions chroniques
-- Suggestions d'activités et tenues adaptées au profil
+- Suggestions d'activités et de tenues adaptées au profil de l'utilisateur
 - Avertissements pollen/allergènes contextualisés
-- Champs optionnels — l'app reste utilisable sans connexion
+- Champs entièrement optionnels — l'application reste utilisable sans connexion
 
-### Authentification & Profils
+### Authentification et gestion des profils
 
-- Inscription / Connexion / Déconnexion par email
+- Inscription / connexion / déconnexion par email
 - Sessions sécurisées via tokens signés (itsdangerous)
 - Protection CSRF sur tous les formulaires
 - Profil utilisateur : âge, profession (agriculteur, extérieur, athlète, bureau), allergies, conditions chroniques
 - Page d'onboarding après inscription
-- Base de données SQLite
+- Persistance via base de données SQLite
 
 ### Chatbot météo
 
@@ -58,70 +99,72 @@ Une application météo complète avec recommandations intelligentes via Groq LL
 - Animations fluides et design glassmorphism
 - Bouton flottant avec indicateur visuel
 
-### UX & Fonctionnalités avancées
+### Expérience utilisateur et fonctionnalités avancées
 
-- **Page d'accueil dynamique** : aperçu météo automatique (géolocalisation ou dernière ville visitée), vitrine des fonctionnalités
+- Page d'accueil dynamique : aperçu météo automatique (géolocalisation ou dernière ville visitée), vitrine des fonctionnalités
 - Recherche de ville avec autocomplétion intelligente (dataset local de ~170k villes, fallback API)
 - Recherche vocale (transcription via Groq Whisper, FR/EN)
-- Géolocalisation automatique ("Ma position" avec reverse geocoding)
-- Page comparaison de villes (côte à côte)
-- Favoris (localStorage)
-- Recherches récentes (localStorage)
+- Géolocalisation automatique (« Ma position » avec reverse geocoding)
+- Page de comparaison de villes (côte à côte)
+- Favoris et recherches récentes (localStorage)
 - Mode sombre
 - Fonds d'écran dynamiques réactifs à la météo (dégradés ciel + particules canvas)
 - Animations météo canvas (pluie, neige, orage, brouillard, vent)
 - Planificateur d'activités interactif avec scoring intelligent
 - Modales explicatives (température ressentie, AQI, UV, confort)
 - Partage en image (html2canvas — PNG)
-- Export rapport imprimable (HTML print-friendly)
-- Interface bilingue FR / EN (localisation complète)
+- Export d'un rapport imprimable (HTML print-friendly)
+- Interface bilingue FR/EN (localisation complète)
 - Navigation rapide par sections (pills avec scroll fluide)
 
-### Visualisations & Interactions
+### Visualisations et interactions
 
-- **Boussole des vents** SVG avec direction et vitesse
-- **Arc solaire** SVG montrant la position du soleil en temps réel
-- **Phase de la lune** calculée mathématiquement (sans API)
-- **Horloge locale** de la ville consultée (fuseau horaire)
-- **Toasts** de notification
-- **Ripple effect** sur les boutons
+- Boussole des vents SVG avec direction et vitesse
+- Arc solaire SVG montrant la position du soleil en temps réel
+- Phase de la lune calculée mathématiquement (sans API)
+- Horloge locale de la ville consultée (fuseau horaire)
+- Notifications toast
+- Effet ripple sur les boutons
 - Transitions CSS fluides et design glassmorphism
 
-### Performance & Sécurité
+### Performance et sécurité
 
-- **Cache mémoire global** : 10 min pour les données météo, 30 min pour les tuiles cartographiques
-- **Requêtes API parallélisées** via ThreadPoolExecutor
-- **Chargement progressif** : météo affichée immédiatement, recommandations IA streamées en arrière-plan (SSE)
-- **Proxy de tuiles cartographiques** : la clé API ne quitte jamais le serveur
-- **Fallback PNG transparent** pour les tuiles défaillantes (la carte reste intacte)
-- **Cache LRU** pour les tuiles (max 80 entrées)
-- **Redaction des clés API** dans les logs
+- Cache mémoire global : 10 min pour les données météo, 30 min pour les tuiles cartographiques
+- Requêtes API parallélisées via ThreadPoolExecutor
+- Chargement progressif : météo affichée immédiatement, recommandations IA streamées en arrière-plan (SSE)
+- Proxy de tuiles cartographiques : la clé API ne quitte jamais le serveur
+- Fallback PNG transparent pour les tuiles défaillantes (la carte reste intacte)
+- Cache LRU pour les tuiles (80 entrées maximum)
+- Redaction automatique des clés API dans les logs
 
-### PWA & Offline
+### PWA et fonctionnement hors ligne
 
-- Installation sur mobile et desktop (manifest.json + service worker)
-- Fonctionne hors ligne pour les dernières villes consultées (cache first)
-- Icônes maskable 192×512
-- Thème couleur personnalisé
+- Installable sur mobile et desktop (manifest.json + service worker)
+- Fonctionne hors ligne pour les dernières villes consultées, via une stratégie cache first
+- Icônes maskable 192×512 et thème couleur personnalisé
 
 ---
 
 ## Captures d'écran
 
-> Une fois l'application lancée, ouvrez http://localhost:5000
+> Une fois l'application lancée, ouvrez [http://localhost:5000](http://localhost:5000) pour l'explorer.
 
 ---
 
 ## Clés API
 
-### OpenWeatherMap (obligatoire)
+### OpenWeatherMap
+
+*Obligatoire*
 
 1. Créer un compte sur [openweathermap.org](https://openweathermap.org/api)
 2. Générer une clé API
 
-> ⚠️ L'endpoint One Call 3.0 est payant. L'app utilise l'API gratuite (weather + forecast + air_pollution). L'index UV utilise une valeur par défaut si One Call est indisponible — aucun blocage.
+> ⚠️ L'endpoint One Call 3.0 est payant. L'application utilise l'API gratuite (weather + forecast + air_pollution). L'indice UV utilise une valeur par défaut si One Call est indisponible — aucun blocage.
 
-### Groq (optionnel — recommandé)
+### Groq
+
+*Optionnel, recommandé*
 
 1. Créer un compte sur [console.groq.com](https://console.groq.com)
 2. Générer une clé API
@@ -134,8 +177,8 @@ GROQ_API_KEY=your_key_here
 AUTH_SECRET_KEY=change-me-in-production
 ```
 
-> Sans la clé Groq, l'app utilise automatiquement le moteur WeatherAI basé sur des règles.
-> Sans `AUTH_SECRET_KEY`, une valeur par défaut est utilisée (à changer en production).
+> Sans la clé Groq, l'application utilise automatiquement le moteur WeatherAI basé sur des règles.
+> Sans `AUTH_SECRET_KEY`, une valeur par défaut est utilisée (à changer impérativement en production).
 
 ---
 
@@ -159,7 +202,7 @@ pip install -r requirements.txt
 
 ### Configuration
 
-Créer un fichier `.env` à la racine :
+Créer un fichier `.env` à la racine du projet :
 
 ```env
 OPENWEATHER_API_KEY=your_key_here
@@ -167,17 +210,17 @@ GROQ_API_KEY=your_key_here
 AUTH_SECRET_KEY=votre-clé-secrète-ici
 ```
 
-> ⚠️ Ne jamais commiter `.env`.
+> ⚠️ Ne jamais commiter le fichier `.env`.
 
-### Lancer l'application
+### Démarrage
 
 ```bash
 python run.py
 ```
 
-Accès : http://localhost:5000
+Accès : [http://localhost:5000](http://localhost:5000)
 
-### Production (gunicorn)
+### Déploiement en production
 
 ```bash
 gunicorn wsgi:app -w 4 -b 0.0.0.0:5000
@@ -191,7 +234,7 @@ gunicorn wsgi:app -w 4 -b 0.0.0.0:5000
 pytest tests/ -v
 ```
 
-Les tests couvrent : règles vestimentaires, activités, alertes santé, indice de confort, conseils voyage, meilleur jour, AQI, UV, prévisions.
+Les tests couvrent : règles vestimentaires, activités, alertes santé, indice de confort, conseils voyage, meilleur jour, AQI, UV et prévisions.
 
 ---
 
@@ -298,15 +341,6 @@ meteoexpress/
 
 ---
 
-## PWA & Offline
-
-- Installable sur mobile et desktop via manifest.json
-- Service Worker avec stratégie Cache First pour le shell
-- Dernières villes consultées accessibles hors ligne
-- Icônes maskable 192×512 et thème personnalisé
-
----
-
 ## Stack technique
 
 | Couche | Technologies |
@@ -314,16 +348,16 @@ meteoexpress/
 | Backend | Flask 3.1, requests, cache mémoire, ThreadPoolExecutor |
 | Base de données | SQLite (utilisateurs + profils) |
 | Authentification | itsdangerous (sessions signées + CSRF) |
-| IA | Groq LLM (LLaMA 3.3 70B / LLaMA 3.1 8B) + WeatherAI (règles) with fallback ; Speech-to-text powered by Groq Whisper |
+| IA | Groq LLM (LLaMA 3.3 70B / LLaMA 3.1 8B) + WeatherAI (règles), avec fallback ; transcription vocale via Groq Whisper |
 | Cartographie | Leaflet (self-hosted) avec tuiles OpenWeatherMap |
 | Icônes | Meteocons SVG (météo), Tabler Icons (UI), flag-icons (pays) — tout self-hosted |
 | Frontend | JavaScript vanilla (modules ES6), Canvas API |
 | UX | Glassmorphism, animations CSS, transitions fluides, squelette de chargement |
 | Streaming | Server-Sent Events (recommandations IA) |
-| PWA | Service Worker, manifest.json, offline support |
+| PWA | Service Worker, manifest.json, support hors ligne |
 | Visualisations | Boussole SVG, arc solaire SVG, phases lunaires, graphiques Canvas |
 | Internationalisation | FR / EN complet (fichier i18n centralisé) |
-| Moteur de recherche | Dataset GeoNames (~170k villes) avec prefix search binaire |
+| Moteur de recherche | Dataset GeoNames (~170k villes) avec recherche par préfixe binaire |
 | Génie logiciel | Cache LRU, fallback intelligent, backoff rate-limit, parallel fetching, tests Pytest |
 | Production | Gunicorn, WSGI |
 
@@ -332,17 +366,18 @@ meteoexpress/
 ## Notes importantes
 
 - **Cache mémoire** : ~10 minutes pour limiter les appels API (données météo) ; ~30 minutes pour les tuiles cartographiques
-- **Premier chargement** : peut être légèrement lent (appels API parallélisés) ; les pages suivantes sont instantanées via le cache
+- **Premier chargement** : peut être légèrement plus lent (appels API parallélisés) ; les pages suivantes sont instantanées grâce au cache
 - **Fichier `.env`** : obligatoire pour `OPENWEATHER_API_KEY` ; `GROQ_API_KEY` et `AUTH_SECRET_KEY` sont optionnels
-- **IA Groq** : optionnelle ; sans elle, le moteur WeatherAI basé sur des règles prend le relais automatiquement
+- **IA Groq** : optionnelle ; sans elle, le moteur WeatherAI basé sur des règles prend automatiquement le relais
 - **Authentification** : entièrement optionnelle — l'application fonctionne sans compte ; les profils permettent des recommandations personnalisées
-- **Données des villes** : le fichier `backend/data/cities.json` (~8 Mo, 170k entrées) peut être reconstruit via `python bin/build_cities.py` (téléchargement depuis GeoNames sous licence CC BY 4.0)
+- **Données des villes** : le fichier `backend/data/cities.json` (~8 Mo, 170k entrées) peut être reconstruit via `python bin/build_cities.py` (téléchargement depuis GeoNames, sous licence CC BY 4.0)
 
 ---
 
 ## Base de données
 
-Le fichier `instance/meteoexpress.db` (SQLite) est créé automatiquement au premier lancement. Tables :
+Le fichier `instance/meteoexpress.db` (SQLite) est créé automatiquement au premier lancement. Il contient deux tables :
+
 - `users` — comptes utilisateurs (email, mot de passe hashé)
 - `user_profiles` — profils optionnels (âge, profession, allergies, conditions chroniques)
 
@@ -362,12 +397,12 @@ Pour réinitialiser la base, supprimez le fichier et redémarrez l'application.
 - [Meteocons](https://github.com/basmilius/weather-icons) — icônes météo
 - [Google Fonts](https://fonts.google.com) — typographies (Inter, Outfit, Syne)
 
-Créé avec soin par **Cheick Yacouba Soukouna**
+**Créé avec soin par Cheick Yacouba Soukouna**
 
 ---
 
 ## Remerciements
 
-Merci à OpenWeatherMap pour son API gratuite, à Groq pour l'accès à des modèles LLM performants, et à GeoNames pour le dataset de villes mondial. Ce projet a été construit avec passion pour offrir une expérience météo moderne, intelligente et accessible à tous.
+Merci à OpenWeatherMap pour son API gratuite, à Groq pour l'accès à des modèles LLM performants, et à GeoNames pour son dataset mondial de villes. Ce projet a été construit avec passion, pour offrir une expérience météo moderne, intelligente et accessible à tous.
 
-Bon exploration !
+Bonne exploration !

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="light">
+<html lang="fr" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,17 +21,8 @@
             --border:rgba(255,255,255,0.10);--shadow:var(--glass-shadow);--r:20px;--r-sm:12px;
             --transition-fast:0.18s ease;--transition-med:0.35s cubic-bezier(0.4,0,0.2,1);
         }
-        [data-theme="light"] {
-            --glass-bg:rgba(255,255,255,0.55);--glass-bg-hover:rgba(255,255,255,0.70);
-            --glass-border:rgba(0,0,0,0.10);--glass-shadow:0 8px 32px rgba(0,0,0,0.12);
-            --text-primary:rgba(15,23,42,0.95);--text-secondary:rgba(15,23,42,0.65);
-            --text-muted:rgba(15,23,42,0.40);
-            --card:var(--glass-bg);--card-border:var(--glass-border);--text:var(--text-primary);
-            --border:rgba(0,0,0,0.10);--shadow:var(--glass-shadow);
-        }
         * { margin:0;padding:0;box-sizing:border-box; }
         body { font-family:'Inter',sans-serif; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%); min-height:100vh; color:var(--text-primary); }
-        [data-theme="light"] body { background:linear-gradient(135deg,#dbeafe 0%,#bfdbfe 50%,#93c5fd 100%); }
         .wrap { max-width:1240px;margin:0 auto;padding:20px; }
         .header { display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px; }
         .logo { font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:10px; }
@@ -61,10 +52,12 @@
         .panel-temp { font-family:'Outfit',sans-serif;font-size:3.5rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
         .panel-desc { font-size:1.1rem;font-weight:600;color:var(--text-muted);margin-top:6px; }
         .panel-body { padding:20px; }
-        .stat-row { display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border); }
+        .stat-row { display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);position:relative; }
         .stat-row:last-child { border-bottom:none; }
         .stat-label { font-size:0.85rem;color:var(--text-muted);display:flex;align-items:center;gap:6px; }
-        .stat-val { font-size:0.95rem;font-weight:700; }
+        .stat-val { font-size:0.95rem;font-weight:700;position:relative;z-index:1; }
+        .stat-bar { height:4px;border-radius:2px;background:rgba(255,255,255,0.06);margin-top:6px;overflow:hidden; }
+        .stat-bar-fill { height:100%;border-radius:2px;width:0;transition:width 0.8s cubic-bezier(0.4,0,0.2,1); }
         .winner { color:var(--success); }
         .loser  { color:var(--text-muted); }
 
@@ -73,6 +66,31 @@
         .no-data { text-align:center;padding:40px;color:var(--text-muted); }
 
         .page-title { font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;text-align:center;margin-bottom:24px; }
+
+        .ai-compare-card { background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:var(--r);box-shadow:var(--glass-shadow);overflow:hidden;margin-top:28px;animation:fadeUp 0.6s ease both;animation-delay:0.2s; }
+        .ai-compare-header { display:flex;align-items:center;gap:10px;padding:18px 24px;background:linear-gradient(135deg,rgba(79,195,247,0.12),rgba(250,140,91,0.08));border-bottom:1px solid var(--border); }
+        .ai-compare-header i { font-size:1.6rem;color:var(--primary); }
+        .ai-compare-header span:first-of-type { font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:var(--text); }
+        .ai-badge { background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:50px;margin-left:auto;text-transform:uppercase;letter-spacing:0.5px; }
+        .ai-compare-body { padding:24px; }
+        .ai-compare-summary { font-style:italic;color:var(--text-secondary);border-left:3px solid var(--primary);padding:12px 16px;margin-bottom:20px;font-size:0.95rem;line-height:1.6;background:rgba(79,195,247,0.04);border-radius:0 8px 8px 0; }
+        .ai-winners { display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px; }
+        @media(max-width:600px){ .ai-winners{grid-template-columns:1fr;} }
+        .ai-winner-card { display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--r-sm);background:rgba(45,212,167,0.06);border:1px solid rgba(45,212,167,0.15); }
+        .ai-winner-card i { font-size:1.3rem;color:var(--success);flex-shrink:0; }
+        .ai-winner-label { font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.3px;font-weight:600; }
+        .ai-winner-city { font-size:0.95rem;font-weight:700;color:var(--text); }
+        .ai-winner-reason { font-size:0.82rem;color:var(--text-secondary);margin-top:2px; }
+        .ai-diffs { margin-bottom:16px; }
+        .ai-diffs-title { font-size:0.85rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.3px; }
+        .ai-diff-item { display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:0.9rem;color:var(--text-secondary); }
+        .ai-diff-item i { color:var(--primary);margin-top:2px;flex-shrink:0; }
+        .ai-warnings { background:rgba(242,92,92,0.06);border:1px solid rgba(242,92,92,0.15);border-radius:var(--r-sm);padding:14px 16px; }
+        .ai-warnings-title { font-size:0.85rem;font-weight:700;color:var(--danger);margin-bottom:8px;display:flex;align-items:center;gap:6px; }
+        .ai-warn-item { font-size:0.88rem;color:var(--text-secondary);padding:4px 0; }
+        .ai-shimmer { background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:aiShimmer 1.5s infinite;border-radius:8px; }
+        @keyframes aiShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        .ai-compare-error { text-align:center;padding:20px;color:var(--text-muted);font-size:0.9rem; }
     </style>
 </head>
 <body>
@@ -81,7 +99,6 @@
         <a href="/" class="logo"><span class="logo-icon">{{ weather_icon('Clouds', true) }}</span><span>Météo Express <span style="font-size:0.55em;opacity:0.7;">Pro</span></span></a>
         <div style="display:flex;gap:10px;align-items:center;">
             <a href="/" class="btn btn-back" data-i18n="back_home">{{ ui_icon('home') }} Accueil</a>
-            <button class="btn" onclick="toggleTheme()"><span id="theme-icon">{{ ui_icon('theme-dark') }}</span></button>
 
             <!-- Language Switcher -->
             <div class="lang-switch" style="display:flex; background:var(--glass-bg); backdrop-filter:var(--glass-blur); border:1px solid var(--glass-border); border-radius:50px; padding:2px; font-size:0.8rem;">
@@ -119,21 +136,30 @@
             <div class="panel-body">
                 {% set m1 = data1.meteo %}
                 {% set m2 = data2.meteo %}
-                <div class="stat-row">
-                    <span class="stat-label">{{ ui_icon('thermometer') }} Ressenti</span>
-                    <span class="stat-val {% if loop.first %}{% if m1.temperature_reelle >= m2.temperature_reelle %}winner{% else %}loser{% endif %}{% else %}{% if m2.temperature_reelle >= m1.temperature_reelle %}winner{% else %}loser{% endif %}{% endif %}">{{ m.temperature_reelle }}°</span>
+                <div class="stat-row" style="flex-direction:column;align-items:stretch;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="stat-label">{{ ui_icon('thermometer') }} Ressenti</span>
+                        <span class="stat-val {% if loop.first %}{% if m1.temperature_reelle >= m2.temperature_reelle %}winner{% else %}loser{% endif %}{% else %}{% if m2.temperature_reelle >= m1.temperature_reelle %}winner{% else %}loser{% endif %}{% endif %}">{{ m.temperature_reelle }}°</span>
+                    </div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:{{ (m.temperature_reelle / 50 * 100)|int }}%;background:var(--primary);"></div></div>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ ui_icon('chevron-up') }} Max / Min</span>
                     <span class="stat-val">{{ m.temp_max }}° / {{ m.temp_min }}°</span>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ ui_icon('droplet') }} Humidité</span>
-                    <span class="stat-val {% if loop.first %}{% if m1.humidite <= m2.humidite %}winner{% else %}loser{% endif %}{% else %}{% if m2.humidite <= m1.humidite %}winner{% else %}loser{% endif %}{% endif %}">{{ m.humidite }}%</span>
+                <div class="stat-row" style="flex-direction:column;align-items:stretch;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="stat-label">{{ ui_icon('droplet') }} Humidité</span>
+                        <span class="stat-val {% if loop.first %}{% if m1.humidite <= m2.humidite %}winner{% else %}loser{% endif %}{% else %}{% if m2.humidite <= m1.humidite %}winner{% else %}loser{% endif %}{% endif %}">{{ m.humidite }}%</span>
+                    </div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:{{ m.humidite }}%;background:var(--primary);"></div></div>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ ui_icon('wind-meter') }} Vent</span>
-                    <span class="stat-val {% if loop.first %}{% if m1.vent <= m2.vent %}winner{% else %}loser{% endif %}{% else %}{% if m2.vent <= m1.vent %}winner{% else %}loser{% endif %}{% endif %}">{{ m.vent }} m/s</span>
+                <div class="stat-row" style="flex-direction:column;align-items:stretch;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="stat-label">{{ ui_icon('wind-meter') }} Vent</span>
+                        <span class="stat-val {% if loop.first %}{% if m1.vent <= m2.vent %}winner{% else %}loser{% endif %}{% else %}{% if m2.vent <= m1.vent %}winner{% else %}loser{% endif %}{% endif %}">{{ m.vent }} m/s</span>
+                    </div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:{{ (m.vent / 20 * 100)|int }}%;background:var(--primary);"></div></div>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ ui_icon('eye') }} Visibilité</span>
@@ -172,6 +198,24 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- AI Comparison Analysis Card -->
+    <div class="ai-compare-card" id="ai-compare-card">
+        <div class="ai-compare-header">
+            <i class="ti ti-brain"></i>
+            <span data-i18n="ai_compare_title">Analyse IA de la comparaison</span>
+            <span class="ai-badge">AI</span>
+        </div>
+        <div class="ai-compare-body" id="ai-compare-content">
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="ai-shimmer" style="height:16px;width:92%;"></div>
+                <div class="ai-shimmer" style="height:16px;width:78%;"></div>
+                <div class="ai-shimmer" style="height:16px;width:85%;"></div>
+                <div class="ai-shimmer" style="height:12px;width:60%;"></div>
+            </div>
+        </div>
+    </div>
+
     {% elif city1 or city2 %}
     <div class="no-data" style="padding:60px;font-size:1.1rem;">Entrez deux villes pour commencer la comparaison.</div>
     {% else %}
@@ -187,9 +231,18 @@
     </div>
 </div>
 <script>
-function initTheme(){const s=localStorage.getItem('mxTheme');const d=s?s==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.setAttribute('data-theme',d?'dark':'light');const ic=document.getElementById('theme-icon');if(ic)ic.innerHTML=d?'<i class="ti ti-sun"><\\/i>':'<i class="ti ti-moon"><\\/i>';return false;}
-function toggleTheme(){const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('mxTheme',n);const ic=document.getElementById('theme-icon');if(ic)ic.innerHTML=n==='dark'?'<i class="ti ti-sun"><\\/i>':'<i class="ti ti-moon"><\\/i>';return false;}
-document.addEventListener('DOMContentLoaded',initTheme);
+// Animate stat bars on load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.stat-bar-fill').forEach(function(bar) {
+        var w = bar.style.width;
+        bar.style.width = '0';
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                bar.style.width = w;
+            });
+        });
+    });
+});
 </script>
 <script>
 // Minimal language support for compare page
@@ -197,12 +250,30 @@ const TRANSLATIONS = {
   fr: {
     "back_home": "Accueil",
     "compare_title": "Comparaison météo",
-    "search_btn": "Comparer"
+    "search_btn": "Comparer",
+    "ai_compare_title": "Analyse IA de la comparaison",
+    "ai_compare_loading": "Analyse en cours...",
+    "ai_compare_error": "Analyse indisponible pour le moment.",
+    "ai_compare_better_weather": "Meilleure météo",
+    "ai_compare_more_comfort": "Plus confortable",
+    "ai_compare_outdoor": "Meilleur pour activités",
+    "ai_compare_travel": "Meilleur pour voyage",
+    "ai_compare_key_diff": "Différences clés",
+    "ai_compare_warnings": "Alertes"
   },
   en: {
     "back_home": "Home",
     "compare_title": "Weather Comparison",
-    "search_btn": "Compare"
+    "search_btn": "Compare",
+    "ai_compare_title": "AI Comparison Analysis",
+    "ai_compare_loading": "Analyzing...",
+    "ai_compare_error": "Analysis unavailable at the moment.",
+    "ai_compare_better_weather": "Better weather",
+    "ai_compare_more_comfort": "More comfortable",
+    "ai_compare_outdoor": "Better for outdoor",
+    "ai_compare_travel": "Better for travel",
+    "ai_compare_key_diff": "Key differences",
+    "ai_compare_warnings": "Warnings"
   }
 };
 
@@ -241,7 +312,93 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btn) btn.classList.add('active');
 
   applyLanguage(currentLang);
+
+  // Load AI comparison analysis
+  const aiCard = document.getElementById('ai-compare-card');
+  const aiContent = document.getElementById('ai-compare-content');
+  if (aiCard && aiContent) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const c1 = urlParams.get('city1');
+    const c2 = urlParams.get('city2');
+    const unit = urlParams.get('unit') || 'C';
+    if (c1 && c2) {
+      fetch(`/compare/data?city1=${encodeURIComponent(c1)}&city2=${encodeURIComponent(c2)}&unit=${unit}&lang=${currentLang}`)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(data => {
+          return fetch('/api/compare-analysis', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({data1: data.data1, data2: data.data2, lang: currentLang})
+          });
+        })
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(analysis => { renderCompareAnalysis(analysis, currentLang); })
+        .catch(() => {
+          aiContent.innerHTML = '<div class="ai-compare-error"><i class="ti ti-alert-circle"></i> ' + (TRANSLATIONS[currentLang]||TRANSLATIONS.fr).ai_compare_error + '</div>';
+        });
+    } else {
+      aiCard.style.display = 'none';
+    }
+  }
 });
+
+function renderCompareAnalysis(a, lang) {
+  const el = document.getElementById('ai-compare-content');
+  if (!el || !a) return;
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.fr;
+  let html = '';
+
+  // Summary
+  if (a.summary) {
+    html += '<div class="ai-compare-summary">' + esc(a.summary) + '</div>';
+  }
+
+  // Winner cards
+  const winners = [
+    {key: 'winner_overall', icon: 'ti ti-award', label: t.ai_compare_better_weather},
+    {key: 'winner_comfort', icon: 'ti ti-armchair', label: t.ai_compare_more_comfort},
+    {key: 'winner_outdoor', icon: 'ti ti-tree', label: t.ai_compare_outdoor},
+    {key: 'winner_travel', icon: 'ti ti-plane', label: t.ai_compare_travel}
+  ];
+  html += '<div class="ai-winners">';
+  winners.forEach(w => {
+    const v = a[w.key];
+    if (!v) return;
+    html += '<div class="ai-winner-card">' +
+      '<i class="' + w.icon + '"></i>' +
+      '<div><div class="ai-winner-label">' + w.label + '</div>' +
+      '<div class="ai-winner-city">' + esc(v.city) + '</div>' +
+      (v.reason ? '<div class="ai-winner-reason">' + esc(v.reason) + '</div>' : '') +
+      '</div></div>';
+  });
+  html += '</div>';
+
+  // Differences
+  if (a.differences && a.differences.length) {
+    html += '<div class="ai-diffs"><div class="ai-diffs-title">' + t.ai_compare_key_diff + '</div>';
+    a.differences.forEach(d => {
+      html += '<div class="ai-diff-item"><i class="ti ti-point"></i><span>' + esc(d) + '</span></div>';
+    });
+    html += '</div>';
+  }
+
+  // Warnings
+  if (a.warnings && a.warnings.length) {
+    html += '<div class="ai-warnings"><div class="ai-warnings-title"><i class="ti ti-alert-triangle"></i> ' + t.ai_compare_warnings + '</div>';
+    a.warnings.forEach(w => {
+      html += '<div class="ai-warn-item">' + esc(w) + '</div>';
+    });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
 </script>
 </body>
 </html>

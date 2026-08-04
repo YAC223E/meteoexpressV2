@@ -1,22 +1,6 @@
-import { state } from './globals.js';
-
 export function initTheme() {
-  const saved = localStorage.getItem('mxTheme');
-  const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme:dark)').matches;
-  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  const themeIcon = document.getElementById('theme-icon');
-  if (themeIcon) themeIcon.innerHTML = dark ? '<i class="ti ti-sun"></i>' : '<i class="ti ti-moon"></i>';
+  document.documentElement.setAttribute('data-theme', 'dark');
 }
-
-export function toggleTheme() {
-  const curr = document.documentElement.getAttribute('data-theme');
-  const next = curr === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('mxTheme', next);
-  const themeIcon = document.getElementById('theme-icon');
-  if (themeIcon) themeIcon.innerHTML = next === 'dark' ? '<i class="ti ti-sun"></i>' : '<i class="ti ti-moon"></i>';
-}
-window.toggleTheme = toggleTheme;
 
 export function applyWeatherTheme(conditionCode, isDay) {
   const cond = (conditionCode || '').toLowerCase();

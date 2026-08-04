@@ -39,7 +39,6 @@ def init_db():
             occupation            TEXT,
             allergies             TEXT,
             chronic_conditions    TEXT,
-            email_alerts_enabled  INTEGER DEFAULT 1,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
     """)
@@ -106,7 +105,6 @@ class UserProfile:
             self.occupation = None
             self.allergies = None
             self.chronic_conditions = None
-            self.email_alerts_enabled = True
         else:
             self.id = row["id"]
             self.user_id = row["user_id"]
@@ -114,7 +112,6 @@ class UserProfile:
             self.occupation = row["occupation"]
             self.allergies = row["allergies"]
             self.chronic_conditions = row["chronic_conditions"]
-            self.email_alerts_enabled = bool(row["email_alerts_enabled"])
 
     @staticmethod
     def find_by_user_id(user_id: int):
@@ -127,18 +124,15 @@ class UserProfile:
 
     @staticmethod
     def upsert(user_id: int, age: int | None, occupation: str | None,
-               allergies: str | None, chronic_conditions: str | None,
-               email_alerts_enabled: bool = True):
+               allergies: str | None, chronic_conditions: str | None):
         db = get_db()
         db.execute("""
-            INSERT INTO user_profiles (user_id, age, occupation, allergies, chronic_conditions, email_alerts_enabled)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO user_profiles (user_id, age, occupation, allergies, chronic_conditions)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
                 age=excluded.age, occupation=excluded.occupation,
-                allergies=excluded.allergies, chronic_conditions=excluded.chronic_conditions,
-                email_alerts_enabled=excluded.email_alerts_enabled
-        """, (user_id, age, occupation, allergies, chronic_conditions,
-              1 if email_alerts_enabled else 0))
+                allergies=excluded.allergies, chronic_conditions=excluded.chronic_conditions
+        """, (user_id, age, occupation, allergies, chronic_conditions))
         db.commit()
         db.close()
 

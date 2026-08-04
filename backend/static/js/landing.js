@@ -134,26 +134,32 @@ export async function fetchAndDisplayLandingWeather(city) {
     }
 
     const aiContent = document.getElementById('landingAiContent');
-    if (aiContent && data.recommendations) {
-      const rec = data.recommendations;
-      let html = '';
-      if (rec.summary) {
-        html += `<div class="ai-summary-text" style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); margin-bottom: 8px; font-size: 0.95rem;">"${IconMap.ses(rec.summary)}"</div>`;
+    if (aiContent) {
+      if (data.recommendations) {
+        const rec = data.recommendations;
+        let html = '';
+        if (rec.summary) {
+          html += `<div class="ai-summary-text" style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); margin-bottom: 8px; font-size: 0.95rem;">"${IconMap.ses(rec.summary)}"</div>`;
+        }
+        if (rec.clothing && rec.clothing.length) {
+          html += `<div style="margin-bottom: 8px;"><strong>${IconMap.clothingIcon('jacket')} ${lang === 'en' ? 'What to wear' : 'Tenue suggérée'} :</strong><div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">${rec.clothing.map(item => { const cat = item.category || 'jacket'; const name = item.name || item; const reason = item.reason || ''; return `<span style="display:inline-flex; align-items:center; gap:6px; background: var(--card-border); border: 1px solid var(--border); padding: 4px 10px; border-radius: 8px; font-size: 0.82rem; color: var(--text);" title="${IconMap.ses(reason)}">${IconMap.clothingIcon(cat)} ${IconMap.ses(name)}</span>`; }).join('')}</div></div>`;
+        }
+        if (rec.activities && rec.activities.activities && rec.activities.activities.length) {
+          html += `<div style="margin-bottom: 8px;"><strong>${IconMap.activityIcon('running')} ${lang === 'en' ? 'Activities & Advice' : 'Activités & Conseils'} :</strong><ul style="margin: 6px 0 0 16px; padding: 0; font-size: 0.88rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px;">${rec.activities.activities.map(act => `<li>${IconMap.guessActivityIcon(act)} ${IconMap.ses(act)}</li>`).join('')}${rec.travel ? `<li>${IconMap.activityIcon('driving')} ${IconMap.ses(rec.travel)}</li>` : ''}</ul></div>`;
+        }
+        if (rec.pack && rec.pack.length) {
+          html += `<div style="margin-bottom: 8px; font-size: 0.88rem; color: var(--text-muted); display:flex; align-items:center; gap:6px;"><strong>${IconMap.uiIcon('backpack')} ${lang === 'en' ? 'To bring' : 'À emporter'} :</strong> ${rec.pack.map(IconMap.ses).join(' • ')}</div>`;
+        }
+        if (rec.comfort_index) {
+          html += `<div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);"><div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:4px; color:var(--text-muted);"><span>${lang === 'en' ? 'Comfort Index' : 'Indice de confort'}</span><strong style="color:var(--text);">${rec.comfort_index}%</strong></div><div style="height:6px; background: var(--border); border-radius:10px; overflow:hidden;"><div style="height:100%; width:${rec.comfort_index}%; background:linear-gradient(90deg, var(--primary), var(--accent));"></div></div></div>`;
+        }
+        aiContent.innerHTML = html;
+        aiContent.style.justifyContent = 'flex-start';
+      } else {
+        aiContent.innerHTML = `<div style="font-style: italic; color: var(--text-muted); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); font-size: 0.9rem;">${lang === 'en'
+          ? 'Unable to generate weather recommendations at the moment.'
+          : 'Impossible de générer les recommandations météo pour le moment.'}</div>`;
       }
-      if (rec.clothing && rec.clothing.length) {
-        html += `<div style="margin-bottom: 8px;"><strong>${IconMap.clothingIcon('jacket')} ${lang === 'en' ? 'What to wear' : 'Tenue suggérée'} :</strong><div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">${rec.clothing.map(item => `<span style="display:inline-flex; align-items:center; gap:6px; background: var(--card-border); border: 1px solid var(--border); padding: 4px 10px; border-radius: 8px; font-size: 0.82rem; color: var(--text);">${IconMap.guessClothingIcon(item)} ${IconMap.ses(item)}</span>`).join('')}</div></div>`;
-      }
-      if (rec.activities && rec.activities.activities && rec.activities.activities.length) {
-        html += `<div style="margin-bottom: 8px;"><strong>${IconMap.activityIcon('running')} ${lang === 'en' ? 'Activities & Advice' : 'Activités & Conseils'} :</strong><ul style="margin: 6px 0 0 16px; padding: 0; font-size: 0.88rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px;">${rec.activities.activities.map(act => `<li>${IconMap.guessActivityIcon(act)} ${IconMap.ses(act)}</li>`).join('')}${rec.travel ? `<li>${IconMap.activityIcon('driving')} ${IconMap.ses(rec.travel)}</li>` : ''}</ul></div>`;
-      }
-      if (rec.pack && rec.pack.length) {
-        html += `<div style="margin-bottom: 8px; font-size: 0.88rem; color: var(--text-muted); display:flex; align-items:center; gap:6px;"><strong>${IconMap.uiIcon('backpack')} ${lang === 'en' ? 'To bring' : 'À emporter'} :</strong> ${rec.pack.map(IconMap.ses).join(' • ')}</div>`;
-      }
-      if (rec.comfort_index) {
-        html += `<div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);"><div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:4px; color:var(--text-muted);"><span>${lang === 'en' ? 'Comfort Index' : 'Indice de confort'}</span><strong style="color:var(--text);">${rec.comfort_index}%</strong></div><div style="height:6px; background: var(--border); border-radius:10px; overflow:hidden;"><div style="height:100%; width:${rec.comfort_index}%; background:linear-gradient(90deg, var(--primary), var(--accent));"></div></div></div>`;
-      }
-      aiContent.innerHTML = html;
-      aiContent.style.justifyContent = 'flex-start';
     }
 
     if (typeof drawChart === 'function') {
@@ -163,8 +169,8 @@ export async function fetchAndDisplayLandingWeather(city) {
 
     const forecastGrid = document.getElementById('landingForecastGrid');
     if (forecastGrid && state.PREVISIONS.length) {
-      forecastGrid.innerHTML = state.PREVISIONS.map(p => `
-        <div class="forecast-card">
+      forecastGrid.innerHTML = state.PREVISIONS.map((p, i) => `
+        <div class="forecast-card" style="animation-delay:${i * 0.08}s">
           <div class="fc-day">${p.jour}</div>
           <div class="fc-date">${p.date}</div>
           <div class="fc-icon">${IconMap.weatherIcon(p.condition, true, { size: 44, class: "weather-icon-meteocon" })}</div>

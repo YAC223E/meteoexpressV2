@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="light">
+<html lang="fr" data-theme="dark">
 <head>
 {% from "partials/search_form.html" import search_form %}
     <meta charset="UTF-8">
@@ -44,7 +44,6 @@
                     <button id="unit-c" class="unit-btn {% if unite != 'F' %}active{% endif %}" onclick="setUnit('C')">°C</button>
                     <button id="unit-f" class="unit-btn {% if unite == 'F' %}active{% endif %}" onclick="setUnit('F')">°F</button>
                 </div>
-                <button class="pill-btn settings-panel-btn" onclick="toggleTheme()"><span id="theme-icon">{{ ui_icon('theme-dark') }}</span> <span id="themeLabel">Theme</span></button>
                 <div class="lang-switch" style="display:flex; background:var(--card); border:1px solid var(--card-border); border-radius:50px; padding:2px; font-size:0.8rem;">
                     <button id="lang-fr" onclick="setLanguage('fr')" class="lang-btn active">{{ flag_icon('fr') }}</button>
                     <button id="lang-en" onclick="setLanguage('en')" class="lang-btn">{{ flag_icon('gb') }}</button>
@@ -358,7 +357,7 @@
         <div class="card-title">{{ ui_icon('calendar') }} Prévisions 5 jours</div>
         <div class="forecast-grid">
             {% for p in previsions %}
-            <div class="forecast-card">
+            <div class="forecast-card" style="animation-delay:{{ loop.index0 * 0.08 }}s">
                 <div class="fc-day">{{ p.jour }}</div>
                 <div class="fc-date">{{ p.date }}</div>
                 <div class="fc-icon">{{ weather_icon(p.condition, true) }}</div>
@@ -483,16 +482,10 @@
                     </div>
                     <span class="ai-badge">AI Powered</span>
                 </div>
-                <div class="ai-collapse-wrapper" id="aiCollapseWrapper">
-                    <div id="landingAiContent" class="landing-ai-content" style="flex-grow:1; display:flex; flex-direction:column; gap:12px; justify-content:center;">
-                        <div style="text-align:center; color:var(--text-muted); font-size:0.9rem;">
-                            <p data-i18n="ai_analyzing">Analyse des conditions météo locales en cours...</p>
-                        </div>
+                <div id="landingAiContent" class="landing-ai-content" style="flex-grow:1; display:flex; flex-direction:column; gap:12px; justify-content:center;">
+                    <div style="text-align:center; color:var(--text-muted); font-size:0.9rem;">
+                        <p data-i18n="ai_analyzing">Analyse des conditions météo locales en cours...</p>
                     </div>
-                    <button class="ai-expand-btn" id="aiExpandBtn" onclick="toggleAiFull()">
-                        <span id="aiExpandLabel">Voir plus</span>
-                        <i class="ti ti-chevron-down" id="aiExpandIcon"></i>
-                    </button>
                 </div>
             </div>
         </div>
@@ -634,58 +627,66 @@ window.CURRENT_UNIT = '{{ unite }}';
 {% if meteo and not meteo.erreur %}
 <script type="module">
 import * as IconMap from '/static/js/icon-map.js';
+import { countUp } from '/static/js/utils.js';
 (function() {
     var city    = {{ meteo.ville|tojson }};
     var weather = {{ (meteo.temperature|string + '°C, ' + meteo.condition + ', Vent ' + meteo.vent|string + ' m/s, Humidité ' + meteo.humidite|string + '%, Ressenti ' + meteo.temperature_reelle|string + '°C')|tojson }};
     var lang    = {{ lang|default('fr')|tojson }};
 
+    // Animate hero numbers on load
+    setTimeout(function() {
+        var heroTemp = document.getElementById('heroTemp');
+        if (heroTemp) countUp(heroTemp, {{ meteo.temperature }}, 600, '°{{ meteo.unite }}');
+        var heroMin = document.getElementById('heroMin');
+        if (heroMin) countUp(heroMin, {{ meteo.temp_min }}, 600, '°');
+        var heroMax = document.getElementById('heroMax');
+        if (heroMax) countUp(heroMax, {{ meteo.temp_max }}, 600, '°');
+    }, 200);
+
     var skeleton  = document.getElementById('ai-skeleton');
     var streamDiv = document.getElementById('ai-stream-text');
     if (!skeleton || !streamDiv) return;
+
+    var _aiTimeout = setTimeout(function() {
+        skeleton.style.display = 'none';
+        streamDiv.style.display = 'block';
+        streamDiv.innerHTML = '<div style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); font-size: 0.95rem;">' + (lang === 'fr'
+            ? 'Impossible de générer les recommandations météo pour le moment.'
+            : 'Unable to generate weather recommendations at the moment.') + '</div>';
+    }, 15000);
 
     var url = '/api/ai-recommendation?city=' + encodeURIComponent(city)
             + '&weather=' + encodeURIComponent(weather)
             + '&lang='    + encodeURIComponent(lang);
 
-    fetch(url).then(function(response) {
-        var reader  = response.body.getReader();
-        var decoder = new TextDecoder();
-        var rawJson = '';
+    var rawJson = '';
+    var evtSource = new EventSource(url);
 
-        function pump() {
-            return reader.read().then(function(result) {
-                if (result.done) {
-                    skeleton.style.display = 'none';
-                    renderCards(rawJson);
-                    return;
-                }
-                var text  = decoder.decode(result.value, { stream: true });
-                var lines = text.split('\n');
-                for (var i = 0; i < lines.length; i++) {
-                    var line = lines[i];
-                    if (line.indexOf('data: ') === 0) {
-                        var chunk = line.substring(6);
-                        if (chunk === '[DONE]') {
-                            skeleton.style.display = 'none';
-                            renderCards(rawJson);
-                            return;
-                        }
-                        rawJson += chunk;
-                    }
-                }
-                return pump();
-            });
+    evtSource.onmessage = function(e) {
+        if (e.data === '[DONE]') {
+            clearTimeout(_aiTimeout);
+            evtSource.close();
+            skeleton.style.display = 'none';
+            renderCards(rawJson);
+            return;
         }
+        rawJson += e.data;
+    };
 
-        return pump();
-    }).catch(function(err) {
-        console.error('[AI Stream] Error:', err);
-        skeleton.style.display = 'none';
-        streamDiv.style.display = 'block';
-        streamDiv.innerHTML = '<div style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); font-size: 0.95rem;">' + (lang === 'fr'
-            ? 'Recommandations IA temporairement indisponibles.'
-            : 'AI recommendations temporarily unavailable.') + '</div>';
-    });
+    evtSource.onerror = function() {
+        clearTimeout(_aiTimeout);
+        evtSource.close();
+        if (!rawJson) {
+            skeleton.style.display = 'none';
+            streamDiv.style.display = 'block';
+            streamDiv.innerHTML = '<div style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); font-size: 0.95rem;">' + (lang === 'fr'
+                ? 'Recommandations IA temporairement indisponibles.'
+                : 'AI recommendations temporarily unavailable.') + '</div>';
+        } else {
+            skeleton.style.display = 'none';
+            renderCards(rawJson);
+        }
+    };
 
     function renderCards(raw) {
         streamDiv.style.display = 'block';
@@ -703,7 +704,9 @@ import * as IconMap from '/static/js/icon-map.js';
                 html += '<div style="margin-bottom: 8px;"><strong>' + IconMap.clothingIcon('jacket') + ' ' + (lang === 'en' ? 'What to wear' : 'Tenue sugg\u00e9r\u00e9e') + ' :</strong>';
                 html += '<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">';
                 rec.clothing.forEach(function(item) {
-                    html += '<span style="display:inline-flex; align-items:center; gap:6px; background: var(--card-border); border: 1px solid var(--border); padding: 4px 10px; border-radius: 8px; font-size: 0.82rem; color: var(--text);">' + IconMap.guessClothingIcon(item) + ' ' + IconMap.ses(item) + '</span>';
+                    var cat = item.category || 'jacket';
+                    var name = item.name || item;
+                    html += '<span style="display:inline-flex; align-items:center; gap:6px; background: var(--card-border); border: 1px solid var(--border); padding: 4px 10px; border-radius: 8px; font-size: 0.82rem; color: var(--text);" title="' + IconMap.ses(item.reason || '') + '">' + IconMap.clothingIcon(cat) + ' ' + IconMap.ses(name) + '</span>';
                 });
                 html += '</div></div>';
             }
@@ -736,7 +739,15 @@ import * as IconMap from '/static/js/icon-map.js';
                 html += '</div></div>';
             }
 
-            streamDiv.innerHTML = html;
+            streamDiv.innerHTML = '<div class="ai-fade-in">' + html + '</div>';
+            var fadeEl = streamDiv.querySelector('.ai-fade-in');
+            if (fadeEl) {
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        fadeEl.classList.add('ai-visible');
+                    });
+                });
+            }
 
             // 6. Personalized advice (profile-aware — separate card)
             if (rec.personalized_advice && rec.personalized_advice.length) {
@@ -754,9 +765,17 @@ import * as IconMap from '/static/js/icon-map.js';
             }
         } catch (e) {
             console.error('[AI] JSON parse error:', e);
-            streamDiv.innerHTML = '<div style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); font-size: 0.95rem;">' + (lang === 'fr'
+            streamDiv.innerHTML = '<div class="ai-fade-in" style="font-style: italic; color: var(--text); padding: 12px; background: rgba(91, 124, 250, 0.08); border-radius: 12px; border-left: 4px solid var(--primary); font-size: 0.95rem;">' + (lang === 'fr'
                 ? 'R\u00e9ponse IA invalide.'
                 : 'Invalid AI response.') + '</div>';
+            var errEl = streamDiv.querySelector('.ai-fade-in');
+            if (errEl) {
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        errEl.classList.add('ai-visible');
+                    });
+                });
+            }
         }
     }
 })();
@@ -777,26 +796,33 @@ window._wbWeather = {
 </script>
 {% endif %}
 
-<!-- Weather Chatbot -->
-<div class="wb-label" data-i18n="chatbot_label">Assistant météo</div>
-<button class="wb-btn" id="wbBtn" aria-label="Ouvrir le chatbot météo">
-  <i class="ti ti-message-chatbot"></i>
+<!-- Weather AI Assistant -->
+<div class="wb-label" data-i18n="chatbot_label">Assistant Météo IA</div>
+<button class="wb-btn" id="wbBtn" aria-label="Ouvrir l'assistant météo IA">
+  <i class="ti ti-robot"></i>
 </button>
 
 <div class="wb-panel" id="wbPanel" aria-hidden="true">
   <div class="wb-header">
-    <div class="wb-header-icon"><i class="ti ti-cloud"></i></div>
+    <div class="wb-header-icon"><i class="ti ti-robot"></i></div>
     <div>
-      <p class="wb-name" data-i18n="chatbot_name">Assistant Météo</p>
+      <p class="wb-name" data-i18n="chatbot_name">Assistant Météo IA</p>
       <p class="wb-status"><span class="wb-dot"></span><span data-i18n="chatbot_status">En ligne</span></p>
     </div>
     <button class="wb-close" id="wbClose" aria-label="Fermer"><i class="ti ti-x"></i></button>
   </div>
   <div class="wb-messages" id="wbMessages">
-    <div class="wb-msg wb-bot" data-i18n="chatbot_welcome">Bonjour ! Posez-moi n'importe quelle question sur la météo</div>
+    <div class="wb-msg wb-bot"><i class="ti ti-sparkles wb-bot-icon"></i><span data-i18n="chatbot_welcome">Bonjour ! Je suis votre assistant météo IA. Posez-moi n'importe quelle question sur la météo.</span></div>
+  </div>
+  <div class="wb-suggestions" id="wbSuggestions">
+    <button class="wb-suggest" data-i18n="chatbot_suggest_1"><i class="ti ti-umbrella"></i><span>Parapluie aujourd'hui ?</span></button>
+    <button class="wb-suggest" data-i18n="chatbot_suggest_2"><i class="ti ti-shirt"></i><span>Que porter ?</span></button>
+    <button class="wb-suggest" data-i18n="chatbot_suggest_3"><i class="ti ti-plane"></i><span>Bon pour voyager ?</span></button>
+    <button class="wb-suggest" data-i18n="chatbot_suggest_4"><i class="ti ti-thermometer"></i><span>Prévisions météo ?</span></button>
   </div>
   <div class="wb-input-row">
     <input class="wb-input" id="wbInput" type="text" data-i18n-ph="chatbot_placeholder" placeholder="Posez une question..." />
+    <button class="wb-mic" id="wbMic" type="button" title="Recherche vocale"><i class="ti ti-microphone"></i></button>
     <button class="wb-send" id="wbSend"><i class="ti ti-send"></i></button>
   </div>
 </div>

@@ -27,12 +27,40 @@ ai_backoff_until = 0
 class WeatherAI:
     def __init__(self):
         self.clothing_rules = {
-            "freezing": {"temp_max": 0,  "items": ["🧥 Manteau d'hiver épais", "🧣 Écharpe", "🧤 Gants", "🥾 Bottes chaudes"]},
-            "cold":     {"temp_max": 10, "items": ["🧥 Veste chaude", "👖 Pantalon épais", "🧣 Écharpe légère"]},
-            "cool":     {"temp_max": 18, "items": ["🧥 Veste légère", "👖 Jean", "👟 Baskets"]},
-            "mild":     {"temp_max": 24, "items": ["👕 T-shirt manches longues", "👖 Pantalon léger", "😎 Lunettes de soleil"]},
-            "warm":     {"temp_max": 30, "items": ["👕 T-shirt", "🩳 Short", "👡 Sandales", "🧴 Crème solaire"]},
-            "hot":      {"temp_max": 100,"items": ["🎽 Débardeur", "🩳 Short léger", "👒 Chapeau", "🧴 SPF 50+", "💧 Bouteille d'eau"]}
+            "freezing": {"temp_max": 0,  "items": [
+                {"category": "coat", "name": "Manteau d'hiver épais", "reason": "Température sous 0°C"},
+                {"category": "scarf", "name": "Écharpe", "reason": "Protection du cou"},
+                {"category": "gloves", "name": "Gants", "reason": "Protection des mains"},
+                {"category": "boots", "name": "Bottes chaudes", "reason": "Pieds au chaud et au sec"}
+            ]},
+            "cold":     {"temp_max": 10, "items": [
+                {"category": "jacket", "name": "Veste chaude", "reason": "Température fraîche"},
+                {"category": "pants", "name": "Pantalon épais", "reason": "Protection contre le froid"},
+                {"category": "scarf", "name": "Écharpe légère", "reason": "Confort au cou"}
+            ]},
+            "cool":     {"temp_max": 18, "items": [
+                {"category": "jacket", "name": "Veste légère", "reason": "Température modérée"},
+                {"category": "jeans", "name": "Jean", "reason": "Tenue décontractée"},
+                {"category": "sneakers", "name": "Baskets", "reason": "Confort pour marcher"}
+            ]},
+            "mild":     {"temp_max": 24, "items": [
+                {"category": "tshirt", "name": "T-shirt manches longues", "reason": "Température agréable"},
+                {"category": "pants", "name": "Pantalon léger", "reason": "Confort optimal"},
+                {"category": "sunglasses", "name": "Lunettes de soleil", "reason": "Protection UV"}
+            ]},
+            "warm":     {"temp_max": 30, "items": [
+                {"category": "tshirt", "name": "T-shirt", "reason": "Température chaude"},
+                {"category": "shorts", "name": "Short", "reason": "Aération maximale"},
+                {"category": "sandals", "name": "Sandales", "reason": "Pieds ventilés"},
+                {"category": "sunscreen", "name": "Crème solaire", "reason": "Protection peau"}
+            ]},
+            "hot":      {"temp_max": 100,"items": [
+                {"category": "tank", "name": "Débardeur", "reason": "Chaleur extrême"},
+                {"category": "shorts", "name": "Short léger", "reason": "Aération maximale"},
+                {"category": "hat", "name": "Chapeau", "reason": "Protection solaire"},
+                {"category": "sunscreen", "name": "SPF 50+", "reason": "Protection UV intense"},
+                {"category": "water", "name": "Bouteille d'eau", "reason": "Hydratation essentielle"}
+            ]}
         }
         self.activity_rules = {
             "Clear":       {"icon": "☀️", "activities": ["🏃 Course à pied", "🚴 Vélo", "🏊 Swimming", "🧺 Pique-nique", "📸 Photographie"], "warning": None},
@@ -248,15 +276,16 @@ class WeatherAI:
         return tips[:3]
 
     def get_outfit(self, temp, condition, lang="fr"):
-        top = self.get_clothing(temp)[0] if self.get_clothing(temp) else ("👕 T-shirt" if lang=="fr" else "👕 T-shirt")
+        items = self.get_clothing(temp)
+        top = items[0]["name"] if items else ("T-shirt" if lang=="fr" else "T-shirt")
         acc = []
         c = (condition or "").lower()
         if "rain" in c or "drizzle" in c:
-            acc.append("🧥 Veste imperméable")
+            acc.append("Veste imperméable")
         if "clear" in c and temp > 22:
-            acc.append("😎 Lunettes")
+            acc.append("Lunettes")
         if temp < 12:
-            acc.append("🧣 Écharpe")
+            acc.append("Écharpe")
         return {"main": top, "accessories": acc[:3]}
 
 ai_engine = WeatherAI()
@@ -356,7 +385,7 @@ Current conditions:
 IMPORTANT: Use the local time and day/night status above. Do not assume it is daytime — check "currently daytime/nighttime" explicitly. Tailor activity, clothing, and safety suggestions to the actual time of day (e.g. don't suggest a picnic or sunscreen at night; don't suggest stargazing at noon).
 
 Provide ONLY a valid JSON object (no markdown, no extra text) with exactly these keys:
-- "clothing": array of 3-5 specific clothing suggestions (plain text, in the response language, no emojis)
+- "clothing": array of 3-5 objects, each with "category" (one of: jacket, coat, scarf, gloves, boots, shoes, sneakers, pants, jeans, tshirt, sunglasses, shorts, sandals, sunscreen, hat, tank, umbrella, backpack, water), "name" (display name in response language, no emojis), and "reason" (why recommended)
 - "activities": object with "icon", "activities" (array of 4-5 suggestions), and optional "warning"
 - "health": array of objects with "severity" (low/medium/high), "advice"
 - "travel": short travel/driving advice string
@@ -377,8 +406,8 @@ Be practical, friendly, concise and accurate. Base suggestions on the real condi
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.7,
-            max_tokens=1024,
-            timeout=6.0
+            max_tokens=2048,
+            timeout=10.0
         )
         return response.choices[0].message.content.strip()
 
@@ -388,7 +417,8 @@ Be practical, friendly, concise and accurate. Base suggestions on the real condi
             text = _call_groq(GROQ_PRIMARY_MODEL)
         except Exception as primary_err:
             err_msg = str(primary_err).lower()
-            if "429" in err_msg or "rate" in err_msg or "limit" in err_msg:
+            # Only treat actual rate-limit / quota errors as retriable
+            if "429" in err_msg or "rate" in err_msg or "quota" in err_msg:
                 print(f"[AI] Primary model rate limited, trying fallback: {primary_err}")
                 text = _call_groq(GROQ_FALLBACK_MODEL)
             else:
@@ -404,10 +434,21 @@ Be practical, friendly, concise and accurate. Base suggestions on the real condi
         # Guarantee required + expanded keys have sane fallbacks
         if "comfort_index" not in data or not isinstance(data.get("comfort_index"), int):
             data["comfort_index"] = ai_engine._calculate_comfort_index(temp, humidity)
+        # Merge rule-based fallback for any missing critical keys
+        fallback = ai_engine.generate_recommendations(fallback_ctx, lang)
         for k in ["clothing", "activities", "health", "travel", "summary"]:
-            if k not in data:
-                # will be filled by fallback merge below if missing critical
-                pass
+            if k not in data or not data[k]:
+                data[k] = fallback.get(k)
+        # Ensure clothing items are structured (category/name/reason)
+        if isinstance(data.get("clothing"), list):
+            fixed = []
+            for item in data["clothing"]:
+                if isinstance(item, dict) and "category" in item:
+                    fixed.append(item)
+                elif isinstance(item, str):
+                    fixed.append({"category": "jacket", "name": item, "reason": ""})
+            if fixed:
+                data["clothing"] = fixed
         if "best_hours" not in data or not isinstance(data.get("best_hours"), list):
             data["best_hours"] = ai_engine.get_best_hours(hourly, condition, lang)
         if "pack" not in data or not isinstance(data.get("pack"), list):
@@ -417,18 +458,18 @@ Be practical, friendly, concise and accurate. Base suggestions on the real condi
         if "outfit" not in data or not isinstance(data.get("outfit"), dict):
             data["outfit"] = ai_engine.get_outfit(temp, condition, lang)
 
-        # Cache recommendations
+        # Cache ONLY actual Groq responses, never rule-based fallbacks
         _recommendations_cache[cache_key] = {"data": data, "ts": time.time()}
         return data
     except Exception as e:
         print(f"[AI] Error: {e}")
         # If we hit a rate limit (429) or quota error, activate backoff for 5 minutes
         err_msg = str(e).lower()
-        if "429" in err_msg or "quota" in err_msg or "limit" in err_msg:
+        if "429" in err_msg or "quota" in err_msg:
             ai_backoff_until = time.time() + 300
             print("[AI] Rate limit / quota error detected. Activating backoff for 5 minutes.")
             
-        # Fallback to rich rule-based
+        # Fallback to rich rule-based — do NOT cache this
         return ai_engine.generate_recommendations(fallback_ctx, lang)
 
 
@@ -503,7 +544,7 @@ IMPORTANT: Use the local time and day/night status above. Do not assume it is da
 
 Respond only with a valid JSON object. No markdown, no explanation, no text outside the JSON.
 The object must have exactly these fields:
-- "clothing": array of 3-5 short clothing suggestions (plain text, no emojis)
+- "clothing": array of 3-5 objects, each with "category" (one of: jacket, coat, scarf, gloves, boots, shoes, sneakers, pants, jeans, tshirt, sunglasses, shorts, sandals, sunscreen, hat, tank, umbrella, backpack, water), "name" (display name in response language, no emojis), and "reason" (why recommended)
 - "activities": object with "icon" (short single-word activity keyword like running/cycling/swimming) and "activities" (array of 3-5 short activity strings, no emojis)
 - "travel": short driving/travel advice string (plain text, no emoji)
 - "pack": array of 3-5 practical items to bring (plain text, no emojis)
@@ -517,7 +558,7 @@ The object must have exactly these fields:
     prompt += """
 
 Example:
-{{"clothing":["👕 T-shirt léger","🩳 Short","😎 Lunettes de soleil","👒 Chapeau"],"activities":{{"icon":"🏃","activities":["Promenade matinale","Détente à l'ombre","Visite de marché","Sport en extérieur"]}},"travel":"🚗 Évitez les déplacements aux heures les plus chaudes.","pack":["💧 Bouteille d'eau","🧴 Écran solaire","😎 Lunettes","👒 Chapeau"],"comfort_index":75,"summary":"Protégez-vous du soleil et restez hydraté pour profiter de votre journée."}}"""
+{{"clothing":[{{"category":"tshirt","name":"T-shirt léger","reason":"Température douce"}},{{"category":"shorts","name":"Short","reason":"Chaleur modérée"}},{{"category":"sunglasses","name":"Lunettes de soleil","reason":"Ensoleillé"}},{{"category":"hat","name":"Chapeau","reason":"Protection solaire"}}],"activities":{{"icon":"running","activities":["Promenade matinale","Détente à l'ombre","Visite de marché","Sport en extérieur"]}},"travel":"Évitez les déplacements aux heures les plus chaudes.","pack":["Bouteille d'eau","Écran solaire","Lunettes","Chapeau"],"comfort_index":75,"summary":"Protégez-vous du soleil et restez hydraté pour profiter de votre journée."}}"""
 
     def _stream_groq(model):
         """Yield text chunks from a streaming Groq completion."""
@@ -526,22 +567,20 @@ Example:
             messages=[{"role": "user", "content": prompt}],
             stream=True,
             temperature=0.7,
-            max_tokens=1024,
+            max_tokens=2048,
         )
         for chunk in response:
             delta = chunk.choices[0].delta
             if delta and delta.content:
-                # Escape newlines for SSE (each data: line is one event)
                 text = delta.content.replace("\n", "\ndata: ")
                 yield f"data: {text}\n\n"
 
     try:
-        # Try primary model first
         try:
             yield from _stream_groq(GROQ_PRIMARY_MODEL)
         except Exception as primary_err:
             err_msg = str(primary_err).lower()
-            if "429" in err_msg or "rate" in err_msg or "limit" in err_msg:
+            if "429" in err_msg or "rate" in err_msg or "quota" in err_msg:
                 print(f"[AI Stream] Primary model rate limited, trying fallback: {primary_err}")
                 yield from _stream_groq(GROQ_FALLBACK_MODEL)
             else:
@@ -552,3 +591,151 @@ Example:
         yield f"data: {fallback}\n\n"
 
     yield "data: [DONE]\n\n"
+
+
+# ==================== COMPARISON ANALYSIS ====================
+
+def get_comparison_analysis(data1, data2, lang="fr"):
+    """Generate an AI-powered comparison analysis between two cities.
+
+    Returns a dict with: summary, winner_overall, winner_comfort,
+    winner_outdoor, winner_travel, differences, warnings.
+    Falls back to rule-based analysis if Groq fails.
+    """
+    global ai_backoff_until
+    m1 = data1.get("meteo", {})
+    m2 = data2.get("meteo", {})
+
+    city1 = m1.get("ville", "Ville A")
+    city2 = m2.get("ville", "Ville B")
+
+    def _build_summary(d):
+        m = d.get("meteo", {})
+        parts = []
+        parts.append(f"{m.get('ville','?')}: {m.get('temperature','?')}°C (feels {m.get('temperature_reelle','?')}°C)")
+        parts.append(f"Condition: {m.get('description', m.get('condition','?'))}")
+        parts.append(f"Humidity: {m.get('humidite','?')}%, Wind: {m.get('vent','?')} m/s")
+        uv = d.get("uv", {})
+        if uv:
+            parts.append(f"UV: {uv.get('index','?')} ({uv.get('risk','?')})")
+        aqi = d.get("qualite_air")
+        if aqi:
+            parts.append(f"AQI: {aqi.get('aqi','?')} ({aqi.get('label','?')})")
+        parts.append(f"Comfort index: {d.get('comfort_index','?')}%")
+        hourly = d.get("hourly", [])
+        if hourly:
+            temps = [str(h.get("temp", "?")) for h in hourly[:6]]
+            parts.append(f"Next hours: {', '.join(temps)}°C")
+        return "; ".join(parts)
+
+    summary1 = _build_summary(data1)
+    summary2 = _build_summary(data2)
+
+    lang_instruction = "Réponds en français." if lang == "fr" else "Respond in English."
+
+    prompt = f"""You are a weather comparison expert for the app "Météo Express Pro".
+
+Compare these two cities and provide an intelligent, human-style analysis.
+
+City A: {summary1}
+City B: {summary2}
+
+{lang_instruction}
+
+IMPORTANT: Do NOT simply repeat numbers. Interpret the data. Explain WHY one city is better in each category. Be concise and practical.
+
+Return ONLY a valid JSON object with exactly these keys:
+- "summary": 2-3 sentence human-style comparison paragraph (interpretive, not raw numbers)
+- "winner_overall": object with "city" (name) and "reason" (1 sentence why)
+- "winner_comfort": object with "city" (name) and "reason" (1 sentence why)
+- "winner_outdoor": object with "city" (name) and "reason" (1 sentence why)
+- "winner_travel": object with "city" (name) and "reason" (1 sentence why)
+- "differences": array of 3-4 short strings highlighting key differences
+- "warnings": array of warning strings (empty array if none)"""
+
+    # Fallback rule-based analysis
+    def _rule_fallback():
+        temp_diff = (m1.get("temperature", 0) or 0) - (m2.get("temperature", 0) or 0)
+        hum_diff = (m1.get("humidite", 0) or 0) - (m2.get("humidite", 0) or 0)
+        wind_diff = (m1.get("vent", 0) or 0) - (m2.get("vent", 0) or 0)
+        c1 = data1.get("comfort_index", 50)
+        c2 = data2.get("comfort_index", 50)
+
+        better_comfort = city1 if c1 >= c2 else city2
+        better_outdoor = city1 if (m1.get("humidite", 100) or 100) <= (m2.get("humidite", 100) or 100) and (m1.get("vent", 99) or 99) <= (m2.get("vent", 99) or 99) else city2
+
+        if lang == "fr":
+            summary = f"Comparaison entre {city1} et {city2}. "
+            if temp_diff > 3:
+                summary += f"{city1} est nettement plus chaud ({abs(round(temp_diff))}°C de plus). "
+            elif temp_diff < -3:
+                summary += f"{city2} est nettement plus chaud ({abs(round(temp_diff))}°C de plus). "
+            else:
+                summary += f"Les températures sont proches ({round(abs(temp_diff))}°C d'écart). "
+            summary += f"{better_comfort} offre les conditions les plus confortables."
+        else:
+            summary = f"Comparing {city1} and {city2}. "
+            if temp_diff > 3:
+                summary += f"{city1} is notably warmer ({abs(round(temp_diff))}°C higher). "
+            elif temp_diff < -3:
+                summary += f"{city2} is notably warmer ({abs(round(temp_diff))}°C higher). "
+            else:
+                summary += f"Temperatures are similar ({round(abs(temp_diff))}°C difference). "
+            summary += f"{better_comfort} offers the most comfortable conditions."
+
+        warnings = []
+        for d, cn in [(data1, city1), (data2, city2)]:
+            um = d.get("meteo", {})
+            if (um.get("vent", 0) or 0) > 10:
+                warnings.append(f"{cn}: {('fort vent' if lang == 'fr' else 'strong wind')} ({um['vent']} m/s)")
+            uv = d.get("uv", {})
+            if uv and (uv.get("index", 0) or 0) >= 8:
+                warnings.append(f"{cn}: {('UV très élevé' if lang == 'fr' else 'very high UV')} ({uv['index']})")
+
+        return {
+            "summary": summary,
+            "winner_overall": {"city": better_comfort, "reason": ""},
+            "winner_comfort": {"city": better_comfort, "reason": ""},
+            "winner_outdoor": {"city": better_outdoor, "reason": ""},
+            "winner_travel": {"city": better_comfort, "reason": ""},
+            "differences": [],
+            "warnings": warnings,
+        }
+
+    if not groq_client:
+        return _rule_fallback()
+
+    if time.time() < ai_backoff_until:
+        print("[AI] Comparison analysis: backoff active, using rule-based.")
+        return _rule_fallback()
+
+    try:
+        response = groq_client.chat.completions.create(
+            model=GROQ_PRIMARY_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.7,
+            max_tokens=1024,
+            timeout=10.0,
+        )
+        text = response.choices[0].message.content.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1].strip()
+            if text.lower().startswith("json"):
+                text = text[4:].strip()
+        data = json.loads(text)
+        # Ensure required keys
+        for key in ["summary", "winner_overall", "winner_comfort", "winner_outdoor", "winner_travel", "differences", "warnings"]:
+            if key not in data:
+                fb = _rule_fallback()
+                data[key] = fb[key]
+        return data
+    except Exception as e:
+        print(f"[AI] Comparison analysis error: {e}")
+        err_msg = str(e).lower()
+        if "429" in err_msg or "quota" in err_msg:
+            ai_backoff_until = time.time() + 300
+        return _rule_fallback()
+
+
+

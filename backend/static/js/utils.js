@@ -2,6 +2,23 @@ export function toF(c) { return Math.round(c * 9/5 + 32); }
 export function toC(f) { return Math.round((f - 32) * 5/9); }
 export function convertTemp(c, unit) { return unit === 'F' ? toF(c) : Math.round(c); }
 
+export function countUp(el, target, duration, suffix) {
+  if (!el || typeof target !== 'number' || isNaN(target)) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var start = 0;
+  var startTime = null;
+  suffix = suffix || '';
+  function step(ts) {
+    if (!startTime) startTime = ts;
+    var progress = Math.min((ts - startTime) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(eased * target) + suffix;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+window.countUp = countUp;
+
 export function toast(msg) {
   const container = document.getElementById('toastContainer');
   if (!container) return;

@@ -228,9 +228,4 @@ export function initChartInteraction() {
 
   canvas.addEventListener('mousemove', handleMove);
   canvas.addEventListener('mouseleave', handleLeave);
-
-  const observer = new MutationObserver(() => {
-    if (chartPoints.length) drawChart(currentChartKey, chartMouseX);
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }

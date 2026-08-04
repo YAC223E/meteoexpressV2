@@ -4,6 +4,8 @@ import * as IconMap from './icon-map.js';
 
 export function geolocate() {
   if (!navigator.geolocation) { toast('Géolocalisation non supportée'); return; }
+  var btn = document.querySelector('.city-chip');
+  if (btn) btn.classList.add('locating');
   toast('Localisation en cours...');
   navigator.geolocation.getCurrentPosition(async pos => {
     try {
@@ -15,28 +17,92 @@ export function geolocate() {
         if (cityInput) cityInput.value = d.city;
         if (searchForm) searchForm.submit();
       }
-    } catch(e) { toast('Erreur de localisation'); }
-  }, () => toast('Permission refusée'));
+    } catch(e) { toast('Erreur de localisation'); if (btn) btn.classList.remove('locating'); }
+  }, () => { toast('Permission refusée'); if (btn) btn.classList.remove('locating'); });
 }
 window.geolocate = geolocate;
 
+let _voiceRecorder = null;
+let _voiceChunks = [];
+let _voiceStream = null;
+let _voiceTimeout = null;
+const VOICE_MAX_MS = 10000;
+
+function _voiceStopRecording() {
+  if (_voiceRecorder && _voiceRecorder.state === 'recording') {
+    _voiceRecorder.stop();
+  }
+  if (_voiceTimeout) { clearTimeout(_voiceTimeout); _voiceTimeout = null; }
+}
+
 export function startVoice() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { toast('Recherche vocale non supportée'); return; }
-  const rec = new SR();
-  rec.lang = currentLang === 'en' ? 'en-US' : 'fr-FR';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('Recherche vocale non supportée');
+    return;
+  }
+
   const btn = document.getElementById('voiceBtn');
-  if (btn) btn.classList.add('recording');
-  rec.onresult = e => {
-    const cityInput = document.getElementById('cityInput');
-    const searchForm = document.getElementById('searchForm');
-    if (cityInput) cityInput.value = e.results[0][0].transcript;
-    if (searchForm) searchForm.submit();
-  };
-  rec.onerror = () => { if (btn) btn.classList.remove('recording'); toast('Erreur vocale'); };
-  rec.onend = () => { if (btn) btn.classList.remove('recording'); };
-  rec.start();
-  toast(currentLang === 'en' ? 'Speak now...' : 'Parlez maintenant...');
+
+  if (_voiceRecorder && _voiceRecorder.state === 'recording') {
+    _voiceStopRecording();
+    return;
+  }
+
+  const preferWebM = MediaRecorder.isTypeSupported('audio/webm');
+  const mime = preferWebM ? 'audio/webm' : 'audio/mp4';
+  const ext = preferWebM ? 'webm' : 'm4a';
+
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      _voiceStream = stream;
+      _voiceChunks = [];
+      _voiceRecorder = new MediaRecorder(stream, { mimeType: mime });
+
+      _voiceRecorder.ondataavailable = e => {
+        if (e.data.size > 0) _voiceChunks.push(e.data);
+      };
+
+      _voiceRecorder.onstop = () => {
+        if (btn) btn.classList.remove('recording');
+        if (_voiceStream) {
+          _voiceStream.getTracks().forEach(t => t.stop());
+          _voiceStream = null;
+        }
+        if (_voiceTimeout) { clearTimeout(_voiceTimeout); _voiceTimeout = null; }
+
+        if (_voiceChunks.length === 0) return;
+
+        toast(currentLang === 'en' ? 'Transcribing...' : 'Transcription en cours...');
+
+        const blob = new Blob(_voiceChunks, { type: mime });
+        const formData = new FormData();
+        formData.append('audio', blob, `recording.${ext}`);
+        formData.append('lang', currentLang === 'en' ? 'en' : 'fr');
+
+        fetch('/api/transcribe', { method: 'POST', body: formData })
+          .then(r => r.json())
+          .then(data => {
+            if (data.error) {
+              toast(data.error);
+              return;
+            }
+            const cityInput = document.getElementById('cityInput');
+            const searchForm = document.getElementById('searchForm');
+            if (cityInput) cityInput.value = data.text;
+            if (searchForm) searchForm.submit();
+          })
+          .catch(() => toast('Erreur vocale'));
+      };
+
+      _voiceRecorder.start();
+      if (btn) btn.classList.add('recording');
+      toast(currentLang === 'en' ? 'Speak now... (tap again to stop)' : 'Parlez maintenant... (retapez pour arrêter)');
+
+      _voiceTimeout = setTimeout(() => _voiceStopRecording(), VOICE_MAX_MS);
+    })
+    .catch(() => {
+      toast(currentLang === 'en' ? 'Microphone permission denied' : 'Permission micro refusée');
+    });
 }
 window.startVoice = startVoice;
 

@@ -354,16 +354,20 @@ def parse_weather(city, unit="C", lang="fr", skip_ai=False):
         recommendations = None
     else:
         # Real AI recommendations using Groq (with fallback) - expanded context
-        feels_for_ai = round(current["main"]["feels_like"])
-        aqi_for_ai = qualite_air["aqi"] if qualite_air else None
-        uv_for_ai = uv.get("index") if isinstance(uv, dict) else None
-        recommendations = get_ai_recommendations(
-            temp_c, main_cond, wind_speed, humidity, display_name, lang,
-            feels_like=feels_for_ai, hourly=hourly, uv_index=uv_for_ai, aqi=aqi_for_ai,
-            heure_locale=meteo["heure_locale"], moment_journee=meteo["moment_journee"],
-            est_jour=meteo["est_jour"], lever_soleil=meteo["lever_soleil"], coucher_soleil=meteo["coucher_soleil"],
-            pressure=meteo["pression"], cloud_cover=meteo["nuages"], visibility=meteo["visibilite"]
-        )
+        try:
+            feels_for_ai = round(current["main"]["feels_like"])
+            aqi_for_ai = qualite_air["aqi"] if qualite_air else None
+            uv_for_ai = uv.get("index") if isinstance(uv, dict) else None
+            recommendations = get_ai_recommendations(
+                temp_c, main_cond, wind_speed, humidity, display_name, lang,
+                feels_like=feels_for_ai, hourly=hourly, uv_index=uv_for_ai, aqi=aqi_for_ai,
+                heure_locale=meteo["heure_locale"], moment_journee=meteo["moment_journee"],
+                est_jour=meteo["est_jour"], lever_soleil=meteo["lever_soleil"], coucher_soleil=meteo["coucher_soleil"],
+                pressure=meteo["pression"], cloud_cover=meteo["nuages"], visibility=meteo["visibilite"]
+            )
+        except Exception as e:
+            print(f"[Weather] AI recommendation error: {e}")
+            recommendations = None
 
     # Comfort index is always computed (simple math, not AI)
     comfort_index = ai_engine._calculate_comfort_index(temp_c, humidity)

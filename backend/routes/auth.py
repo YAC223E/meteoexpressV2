@@ -151,7 +151,7 @@ def onboarding():
     allergies = (request.form.get("allergies") or "").strip() or None
     chronic = (request.form.get("chronic_conditions") or "").strip() or None
 
-    UserProfile.upsert(user["user_id"], age, occupation, allergies, chronic, email_alerts_enabled=True)
+    UserProfile.upsert(user["user_id"], age, occupation, allergies, chronic)
     return redirect("/profile?onboarded=1")
 
 
@@ -184,7 +184,6 @@ def profile():
     occupation = (request.form.get("occupation") or "").strip() or None
     allergies = (request.form.get("allergies") or "").strip() or None
     chronic = (request.form.get("chronic_conditions") or "").strip() or None
-    alerts = request.form.get("email_alerts_enabled") == "1"
 
-    UserProfile.upsert(user["user_id"], age, occupation, allergies, chronic, alerts)
+    UserProfile.upsert(user["user_id"], age, occupation, allergies, chronic)
     return redirect("/profile?saved=1")

@@ -5,7 +5,28 @@ document.addEventListener('DOMContentLoaded', function() {
   var wbInput = document.getElementById('wbInput');
   var wbSend = document.getElementById('wbSend');
   var wbMessages = document.getElementById('wbMessages');
+  var wbSuggestions = document.getElementById('wbSuggestions');
   if (!wbBtn || !wbPanel) return;
+
+  function _wbLang() {
+    var p = new URLSearchParams(window.location.search);
+    return p.get('lang') === 'en' ? 'en' : 'fr';
+  }
+
+  function _wbT(key) {
+    var el = document.querySelector('[data-i18n="' + key + '"]');
+    return el ? el.textContent : key;
+  }
+
+  function _wbToast(msg) {
+    if (typeof window.toast === 'function') { window.toast(msg); return; }
+    var t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function() { t.classList.add('show'); });
+    setTimeout(function() { t.classList.remove('show'); setTimeout(function() { t.remove(); }, 400); }, 2500);
+  }
 
   wbBtn.addEventListener('click', function() {
     var opening = !wbPanel.classList.contains('wb-open');
@@ -33,10 +54,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  function wbAppendMsg(text, type) {
+  function _wbHideSuggestions() {
+    if (wbSuggestions) wbSuggestions.classList.add('wb-hidden');
+  }
+
+  function _wbShowSuggestions() {
+    if (wbSuggestions) wbSuggestions.classList.remove('wb-hidden');
+  }
+
+  function wbAppendMsg(text, type, withIcon) {
     var div = document.createElement('div');
     div.className = 'wb-msg wb-' + type;
-    div.textContent = text;
+    if (withIcon) {
+      var icon = document.createElement('i');
+      icon.className = 'ti ti-sparkles wb-bot-icon';
+      div.appendChild(icon);
+    }
+    var span = document.createElement('span');
+    span.textContent = text;
+    div.appendChild(span);
     wbMessages.appendChild(div);
     wbMessages.scrollTop = wbMessages.scrollHeight;
     return div;
@@ -57,11 +93,12 @@ document.addEventListener('DOMContentLoaded', function() {
   function wbTypewrite(element, text, callback) {
     var i = 0;
     var speed = 18;
-    element.textContent = '';
+    var span = element.querySelector('span') || element;
+    span.textContent = '';
     element.classList.remove('wb-typing');
     function tick() {
       if (i < text.length) {
-        element.textContent += text.charAt(i);
+        span.textContent += text.charAt(i);
         i++;
         wbMessages.scrollTop = wbMessages.scrollHeight;
         setTimeout(tick, speed);
@@ -72,14 +109,15 @@ document.addEventListener('DOMContentLoaded', function() {
     tick();
   }
 
-  async function wbSendMessage() {
-    var text = wbInput.value.trim();
+  async function wbSendMessage(text) {
+    text = (text || wbInput.value).trim();
     if (!text) return;
     wbInput.value = '';
+    _wbHideSuggestions();
     wbAppendMsg(text, 'user');
     var typing = wbCreateTyping();
 
-    var weatherCtx = 'Données météo non disponibles';
+    var weatherCtx = _wbLang() === 'en' ? 'Weather data not available' : 'Données météo non disponibles';
     if (typeof window._wbWeather !== 'undefined' && window._wbWeather.ville) {
       weatherCtx = JSON.stringify(window._wbWeather);
     } else {
@@ -134,17 +172,104 @@ document.addEventListener('DOMContentLoaded', function() {
         body: JSON.stringify({ message: text, weather: weatherCtx })
       });
       var data = await response.json();
-      var reply = data.reply || 'Désolé, je ne peux pas répondre pour le moment.';
+      var reply = data.reply || (_wbLang() === 'en' ? 'Sorry, I cannot respond right now.' : 'Désolé, je ne peux pas répondre pour le moment.');
       var msgDiv = document.createElement('div');
       msgDiv.className = 'wb-msg wb-bot';
+      var icon = document.createElement('i');
+      icon.className = 'ti ti-sparkles wb-bot-icon';
+      msgDiv.appendChild(icon);
       typing.replaceWith(msgDiv);
       wbTypewrite(msgDiv, reply);
     } catch (err) {
       typing.remove();
-      wbAppendMsg('Erreur de connexion. Réessayez.', 'bot');
+      wbAppendMsg(_wbT('chatbot_error'), 'bot');
     }
   }
 
-  wbSend.addEventListener('click', wbSendMessage);
+  wbSend.addEventListener('click', function() { wbSendMessage(); });
   wbInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') wbSendMessage(); });
+
+  // Suggested questions
+  var suggestBtns = document.querySelectorAll('.wb-suggest');
+  suggestBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      wbSendMessage(btn.textContent);
+    });
+  });
+
+  // ---- Voice input for chatbot ----
+  var wbMic = document.getElementById('wbMic');
+  if (!wbMic) return;
+
+  var _chatRec = null;
+  var _chatChunks = [];
+  var _chatStream = null;
+  var _chatTimeout = null;
+  var CHAT_VOICE_MAX_MS = 10000;
+
+  function _chatStopRecording() {
+    if (_chatRec && _chatRec.state === 'recording') _chatRec.stop();
+    if (_chatTimeout) { clearTimeout(_chatTimeout); _chatTimeout = null; }
+  }
+
+  wbMic.addEventListener('click', function() {
+    if (_chatRec && _chatRec.state === 'recording') {
+      _chatStopRecording();
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      _wbToast(_wbT('chatbot_voice_unsupported'));
+      return;
+    }
+
+    var preferWebM = MediaRecorder.isTypeSupported('audio/webm');
+    var mime = preferWebM ? 'audio/webm' : 'audio/mp4';
+    var ext = preferWebM ? 'webm' : 'm4a';
+    var lang = _wbLang();
+
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function(stream) {
+        _chatStream = stream;
+        _chatChunks = [];
+        _chatRec = new MediaRecorder(stream, { mimeType: mime });
+
+        _chatRec.ondataavailable = function(e) {
+          if (e.data.size > 0) _chatChunks.push(e.data);
+        };
+
+        _chatRec.onstop = function() {
+          wbMic.classList.remove('recording');
+          if (_chatStream) { _chatStream.getTracks().forEach(function(t) { t.stop(); }); _chatStream = null; }
+          if (_chatTimeout) { clearTimeout(_chatTimeout); _chatTimeout = null; }
+          if (_chatChunks.length === 0) return;
+
+          _wbToast(_wbT('chatbot_transcribing'));
+
+          var blob = new Blob(_chatChunks, { type: mime });
+          var formData = new FormData();
+          formData.append('audio', blob, 'recording.' + ext);
+          formData.append('lang', lang);
+
+          fetch('/api/transcribe', { method: 'POST', body: formData })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.error) { _wbToast(data.error); return; }
+              if (data.text) {
+                wbInput.value = data.text;
+                wbSendMessage();
+              }
+            })
+            .catch(function() { _wbToast(_wbT('chatbot_voice_error')); });
+        };
+
+        _chatRec.start();
+        wbMic.classList.add('recording');
+        _wbToast(_wbT('chatbot_voice_start'));
+        _chatTimeout = setTimeout(function() { _chatStopRecording(); }, CHAT_VOICE_MAX_MS);
+      })
+      .catch(function() {
+        _wbToast(_wbT('chatbot_voice_permission'));
+      });
+  });
 });

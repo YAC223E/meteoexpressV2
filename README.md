@@ -62,12 +62,12 @@ Une application météo complète avec recommandations intelligentes via Groq LL
 
 - **Page d'accueil dynamique** : aperçu météo automatique (géolocalisation ou dernière ville visitée), vitrine des fonctionnalités
 - Recherche de ville avec autocomplétion intelligente (dataset local de ~170k villes, fallback API)
-- Recherche vocale (français supporté via Web Speech API)
+- Recherche vocale (transcription via Groq Whisper, FR/EN)
 - Géolocalisation automatique ("Ma position" avec reverse geocoding)
 - Page comparaison de villes (côte à côte)
 - Favoris (localStorage)
 - Recherches récentes (localStorage)
-- Mode sombre / clair (persistant)
+- Mode sombre
 - Fonds d'écran dynamiques réactifs à la météo (dégradés ciel + particules canvas)
 - Animations météo canvas (pluie, neige, orage, brouillard, vent)
 - Planificateur d'activités interactif avec scoring intelligent
@@ -238,7 +238,7 @@ meteoexpress/
 │   │   │   ├── globals.js          # État global partagé
 │   │   │   ├── icon-map.js         # Mappage d'icônes côté client
 │   │   │   ├── i18n.js             # Internationalisation FR/EN
-│   │   │   ├── theme.js            # Mode sombre/clair
+│   │   │   ├── theme.js            # Thème sombre permanent
 │   │   │   ├── ui.js               # Favoris, recents, planner, partage
 │   │   │   ├── search.js           # Autocomplétion, voix, géolocalisation
 │   │   │   ├── charts.js           # Graphiques Canvas 24h
@@ -314,7 +314,7 @@ meteoexpress/
 | Backend | Flask 3.1, requests, cache mémoire, ThreadPoolExecutor |
 | Base de données | SQLite (utilisateurs + profils) |
 | Authentification | itsdangerous (sessions signées + CSRF) |
-| IA | Groq LLM (LLaMA 3.3 70B / LLaMA 3.1 8B) + WeatherAI (règles) with fallback |
+| IA | Groq LLM (LLaMA 3.3 70B / LLaMA 3.1 8B) + WeatherAI (règles) with fallback ; Speech-to-text powered by Groq Whisper |
 | Cartographie | Leaflet (self-hosted) avec tuiles OpenWeatherMap |
 | Icônes | Meteocons SVG (météo), Tabler Icons (UI), flag-icons (pays) — tout self-hosted |
 | Frontend | JavaScript vanilla (modules ES6), Canvas API |
@@ -344,7 +344,7 @@ meteoexpress/
 
 Le fichier `instance/meteoexpress.db` (SQLite) est créé automatiquement au premier lancement. Tables :
 - `users` — comptes utilisateurs (email, mot de passe hashé)
-- `user_profiles` — profils optionnels (âge, profession, allergies, conditions chroniques, alertes email)
+- `user_profiles` — profils optionnels (âge, profession, allergies, conditions chroniques)
 
 Pour réinitialiser la base, supprimez le fichier et redémarrez l'application.
 

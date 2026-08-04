@@ -1,7 +1,7 @@
 import { state } from './globals.js';
 import { toast, createRipple, getAnimatedWeatherIcon } from './utils.js';
 import * as IconMap from './icon-map.js';
-import { initTheme, toggleTheme, applyWeatherTheme } from './theme.js';
+import { initTheme, applyWeatherTheme } from './theme.js';
 import { currentLang, setLanguage, initLanguage, showExplain, hideExplain } from './i18n.js';
 import { getFavs, saveFavs, isFav, toggleFav, removeFav, updateFavButton, renderFavs, renderRecents, getRecents, saveRecents, pushRecent, setUnit, showActivityPlanner, shareAsImage } from './ui.js';
 import { geolocate, startVoice, initAutocomplete, selectCity } from './search.js';
@@ -120,7 +120,6 @@ function initAll() {
 
 document.addEventListener('DOMContentLoaded', initAll);
 
-window.toggleTheme = toggleTheme;
 window.setUnit = setUnit;
 window.geolocate = geolocate;
 window.startVoice = startVoice;

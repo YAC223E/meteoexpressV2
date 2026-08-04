@@ -275,14 +275,14 @@ def _is_day(sunrise=None, sunset=None):
     return True
 
 
-def weather_icon(condition, sunrise=None, sunset=None, is_day=None):
+def weather_icon(condition, sunrise=None, sunset=None, is_day=None, size=32):
     """Return an inline <svg> wrapped in a <span> for the given OWM condition."""
     if is_day is None:
         is_day = _is_day(sunrise, sunset)
     entry = WEATHER_ICON_SVG.get(condition, {})
     fname = entry.get("day" if is_day else "night") or WEATHER_ICON_FALLBACK
     svg = _read_svg(fname)
-    svg = svg.replace("<svg", '<svg width="100%" height="100%"', 1)
+    svg = svg.replace("<svg", f'<svg width="{size}" height="{size}"', 1)
     return Markup(
         '<span class="weather-icon-meteocon" aria-hidden="true" data-condition="{}" data-isday="{}">{}</span>'
     ).format(condition or "", "true" if is_day else "false", Markup(svg))
@@ -328,17 +328,17 @@ def aqi_icon(level):
     return Markup('<i class="{}" aria-hidden="true"></i>').format(cls)
 
 
-def sunrise_icon():
+def sunrise_icon(size=20):
     svg = _read_svg(SUNRISE_ICON_SVG)
-    svg = svg.replace("<svg", '<svg width="100%" height="100%"', 1)
+    svg = svg.replace("<svg", f'<svg width="{size}" height="{size}"', 1)
     return Markup(
         '<span class="weather-icon-meteocon" aria-hidden="true" data-condition="sunrise">{}</span>'
     ).format(Markup(svg))
 
 
-def sunset_icon():
+def sunset_icon(size=20):
     svg = _read_svg(SUNSET_ICON_SVG)
-    svg = svg.replace("<svg", '<svg width="100%" height="100%"', 1)
+    svg = svg.replace("<svg", f'<svg width="{size}" height="{size}"', 1)
     return Markup(
         '<span class="weather-icon-meteocon" aria-hidden="true" data-condition="sunset">{}</span>'
     ).format(Markup(svg))

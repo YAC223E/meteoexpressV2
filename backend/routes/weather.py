@@ -1,6 +1,7 @@
 import time
 import requests
 from flask import Blueprint, render_template, request, jsonify, Response, stream_with_context
+from weasyprint import HTML
 
 from backend.config import OPENWEATHER_API_KEY, GEO_URL
 from backend.services.weather_service import (
@@ -8,7 +9,7 @@ from backend.services.weather_service import (
     tile_cache_get, tile_cache_set
 )
 from backend.services.city_search import search_cities
-from backend.services.ai_engine import stream_recommendation
+from backend.services.ai_engine import stream_recommendation, get_comparison_analysis
 from backend.auth.session import read_session
 from backend.auth.models import UserProfile
 
@@ -108,6 +109,23 @@ def compare():
     )
 
 
+@weather_bp.route("/compare/data")
+def compare_data():
+    """Return JSON weather data for two cities (used by AI comparison AJAX)."""
+    city1 = request.args.get("city1", "").strip()
+    city2 = request.args.get("city2", "").strip()
+    unit = request.args.get("unit", "C")
+    lang = request.args.get("lang", "fr")
+
+    if not city1 or not city2:
+        return jsonify({"error": "city1 and city2 required"}), 400
+
+    result1, err1 = parse_weather(city1, unit, lang, skip_ai=True)
+    result2, err2 = parse_weather(city2, unit, lang, skip_ai=True)
+
+    return jsonify({"data1": result1, "data2": result2, "err1": err1, "err2": err2})
+
+
 @weather_bp.route("/autocomplete")
 def autocomplete():
     import re
@@ -148,7 +166,7 @@ def reverse_geocode():
 
 @weather_bp.route("/export-pdf")
 def export_pdf():
-    """Generate a simple weather report as downloadable text (HTML-based PDF via print dialog)."""
+    """Generate the weather report as a real server-rendered PDF via WeasyPrint."""
     city = request.args.get("city", "").strip()
     unit = request.args.get("unit", "C")
     lang = request.args.get("lang", "fr")
@@ -157,7 +175,17 @@ def export_pdf():
     result, error = parse_weather(city, unit, lang)
     if error:
         return error, 500
-    return render_template("report.html", **result, unite=unit, city=city, lang=lang)
+    html_string = render_template("report.html", **result, unite=unit, city=city, lang=lang)
+    try:
+        pdf_bytes = HTML(string=html_string, base_url=request.url_root).write_pdf()
+    except Exception as e:
+        print(f"[export_pdf] WeasyPrint error for {city}: {e}")
+        return "Impossible de générer le PDF. Réessayez.", 500
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="rapport-meteo-{city}.pdf"'}
+    )
 
 
 # ==================== JSON API FOR REACT FRONTEND ====================
@@ -218,6 +246,24 @@ def api_ai_recommendation():
     )
 
 
+@weather_bp.route("/api/compare-analysis", methods=["POST"])
+def api_compare_analysis():
+    """Generate AI comparison analysis between two cities.
+
+    Expects JSON body: { data1: {...}, data2: {...}, lang: "fr" }
+    """
+    body = request.get_json(silent=True) or {}
+    data1 = body.get("data1")
+    data2 = body.get("data2")
+    lang = body.get("lang", "fr")
+
+    if not data1 or not data2:
+        return jsonify({"error": "data1 and data2 are required"}), 400
+
+    analysis = get_comparison_analysis(data1, data2, lang)
+    return jsonify(analysis)
+
+
 # Convenience aliases so frontend can call /api/* uniformly if desired
 @weather_bp.route("/api/autocomplete")
 def api_autocomplete():
@@ -241,6 +287,40 @@ def api_reverse_geocode():
     if not geo:
         return jsonify({"error": "Not found"}), 404
     return jsonify({"city": geo[0]["name"], "country": geo[0].get("country","")})
+
+
+@weather_bp.route("/api/transcribe", methods=["POST"])
+def api_transcribe():
+    """Transcribe a short voice-search clip via Groq Whisper."""
+    from backend.services.ai_engine import groq_client
+
+    if not groq_client:
+        return jsonify({"error": "Transcription indisponible pour le moment."}), 503
+
+    audio_file = request.files.get("audio")
+    if not audio_file:
+        return jsonify({"error": "Aucun fichier audio reçu."}), 400
+
+    audio_bytes = audio_file.read()
+    if len(audio_bytes) > 10 * 1024 * 1024:
+        return jsonify({"error": "Fichier audio trop volumineux."}), 400
+
+    lang = request.form.get("lang", "fr")
+    lang = lang if lang in ("fr", "en") else "fr"
+
+    try:
+        transcription = groq_client.audio.transcriptions.create(
+            file=(audio_file.filename or "recording.webm", audio_bytes),
+            model="whisper-large-v3",
+            language=lang,
+            response_format="json",
+        )
+        text = (transcription.text or "").strip()
+    except Exception as e:
+        print(f"[Transcribe] Error: {e}")
+        return jsonify({"error": "Erreur de transcription. Réessayez."}), 500
+
+    return jsonify({"text": text})
 
 
 @weather_bp.route("/api/chat", methods=["POST"])

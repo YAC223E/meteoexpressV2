@@ -73,8 +73,6 @@ export const UI_ICON_MAP = {
   "camera":          "ti ti-camera",
   "location":        "ti ti-map-pin",
   "locate-me":       "ti ti-current-location",
-  "theme-light":     "ti ti-sun",
-  "theme-dark":      "ti ti-moon",
   "save":            "ti ti-device-floppy",
   "calendar":        "ti ti-calendar",
   "compass":         "ti ti-compass",

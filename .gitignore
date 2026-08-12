@@ -65,6 +65,27 @@ skills-lock.json
 *.log
 logs/
 npm-debug.log*
+server.log
+server_error.log
+
+# ===========================
+# Flask env (non-example)
+# ===========================
+.flaskenv
+
+# ===========================
+# Impeccable working files
+# ===========================
+.impeccable/
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/hook.pending.json
+.impeccable/*.png
+.impeccable/live/server.json
+.impeccable/live/sessions/
+.impeccable/live/previews/
+.impeccable/live/annotations/
+.impeccable/live/cache/
 
 # ===========================
 # Test & Coverage

@@ -1,7 +1,6 @@
 import time
 import requests
 from flask import Blueprint, render_template, request, jsonify, Response, stream_with_context
-from weasyprint import HTML
 
 from backend.config import OPENWEATHER_API_KEY, GEO_URL
 from backend.services.weather_service import (
@@ -166,7 +165,8 @@ def reverse_geocode():
 
 @weather_bp.route("/export-pdf")
 def export_pdf():
-    """Generate the weather report as a real server-rendered PDF via WeasyPrint."""
+    """Serve a print-ready HTML report. The browser's native Print / Save as PDF
+    produces the file — no native GTK dependencies required."""
     city = request.args.get("city", "").strip()
     unit = request.args.get("unit", "C")
     lang = request.args.get("lang", "fr")
@@ -175,17 +175,7 @@ def export_pdf():
     result, error = parse_weather(city, unit, lang)
     if error:
         return error, 500
-    html_string = render_template("report.html", **result, unite=unit, city=city, lang=lang)
-    try:
-        pdf_bytes = HTML(string=html_string, base_url=request.url_root).write_pdf()
-    except Exception as e:
-        print(f"[export_pdf] WeasyPrint error for {city}: {e}")
-        return "Impossible de générer le PDF. Réessayez.", 500
-    return Response(
-        pdf_bytes,
-        mimetype="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="rapport-meteo-{city}.pdf"'}
-    )
+    return render_template("report.html", **result, unite=unit, city=city, lang=lang)
 
 
 # ==================== JSON API FOR REACT FRONTEND ====================

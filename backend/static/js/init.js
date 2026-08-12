@@ -6,7 +6,7 @@ import { currentLang, setLanguage, initLanguage, showExplain, hideExplain } from
 import { getFavs, saveFavs, isFav, toggleFav, removeFav, updateFavButton, renderFavs, renderRecents, getRecents, saveRecents, pushRecent, setUnit, showActivityPlanner, shareAsImage } from './ui.js';
 import { geolocate, startVoice, initAutocomplete, selectCity } from './search.js';
 import { switchChart, drawChart, initChartInteraction } from './charts.js';
-import { initCompass, initSunArc, startWeatherAnimation, startBackgroundWeatherAnimation, startLandingBackgroundCycle } from './animations.js';
+import { initCompass, initSunArc, startWeatherAnimation, startBackgroundWeatherAnimation, startLandingBackgroundCycle, startHeroRain, stopHeroRain } from './animations.js';
 import { initMap, setMapLayer } from './map.js';
 import { initPWA } from './pwa.js';
 import { loadLandingWeather } from './landing.js';
@@ -65,13 +65,17 @@ function initAll() {
       const iconHtml = IconMap.weatherIcon(cond, condIsDay, { size: 96, class: "weather-icon-meteocon hero" });
       const cssClass = IconMap.weatherIconCssClass(cond, condIsDay);
       let overlays = '';
-      if (cond === 'Rain' || cond === 'Drizzle' || cond === 'Thunderstorm') {
-        overlays += '<div class="rain-overlay"><span></span><span></span><span></span><span></span></div>';
-      }
       if (cond === 'Thunderstorm') {
         overlays += '<div class="lightning-overlay"></div>';
       }
       mainEmoji.innerHTML = `<div class="weather-icon-wrap weather-icon-${cssClass}">${iconHtml}${overlays}</div>`;
+    }
+
+    /* Realistic hero rain for rain/drizzle/thunderstorm */
+    if (cond === 'Rain' || cond === 'Drizzle' || cond === 'Thunderstorm') {
+      startHeroRain(cond, wdeg);
+    } else {
+      stopHeroRain();
     }
 
     document.querySelectorAll('.forecast-card').forEach((card, idx) => {
@@ -107,6 +111,13 @@ function initAll() {
           if (m) m.invalidateSize();
         }
       }, 60);
+    }
+    /* Resize hero rain canvas */
+    const heroRain = document.getElementById('heroRain');
+    const heroVisual = document.querySelector('.hero-weather-visual');
+    if (heroRain && heroVisual) {
+      heroRain.width = heroVisual.clientWidth;
+      heroRain.height = heroVisual.clientHeight;
     }
   });
 

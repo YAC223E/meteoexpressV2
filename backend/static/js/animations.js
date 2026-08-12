@@ -58,54 +58,40 @@ export function startWeatherAnimation(condition) {
   const H = fxCanvas.height;
   fxCtx.clearRect(0, 0, W, H);
 
-  if (fxCondition === 'Rain' || fxCondition === 'Drizzle') {
-    for (let i = 0; i < 75; i++) {
+   if (fxCondition === 'Snow') {
+    for (let i = 0; i < 65; i++) {
       fxParticles.push({
         x: Math.random() * W, y: Math.random() * H,
-        len: 10 + Math.random() * 14, speed: 6 + Math.random() * 5,
-        opacity: 0.35 + Math.random() * 0.45
-      });
-    }
-  } else if (fxCondition === 'Snow') {
-    for (let i = 0; i < 55; i++) {
-      fxParticles.push({
-        x: Math.random() * W, y: Math.random() * H,
-        r: 1.8 + Math.random() * 2.2, speed: 0.6 + Math.random() * 1.1,
-        sway: Math.random() * 1.6 + 0.6, phase: Math.random() * Math.PI * 2,
+        r: 2 + Math.random() * 2.5, speed: 0.7 + Math.random() * 1.3,
+        sway: Math.random() * 1.8 + 0.8, phase: Math.random() * Math.PI * 2,
         opacity: 0.6 + Math.random() * 0.35
       });
     }
   } else if (fxCondition === 'Thunderstorm') {
-    for (let i = 0; i < 60; i++) {
-      fxParticles.push({
-        x: Math.random() * W, y: Math.random() * H,
-        len: 9 + Math.random() * 12, speed: 7 + Math.random() * 6,
-        opacity: 0.4 + Math.random() * 0.4
-      });
-    }
     fxParticles.lightning = 0;
   } else if (fxCondition === 'Mist' || fxCondition === 'Fog') {
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 10; i++) {
       fxParticles.push({
-        x: Math.random() * W, y: 20 + Math.random() * (H - 40),
-        w: 60 + Math.random() * 70, h: 28 + Math.random() * 22,
-        speed: 0.15 + Math.random() * 0.25, opacity: 0.12 + Math.random() * 0.18
+        x: Math.random() * W, y: 15 + Math.random() * (H - 30),
+        w: 70 + Math.random() * 80, h: 30 + Math.random() * 25,
+        speed: 0.2 + Math.random() * 0.3, opacity: 0.15 + Math.random() * 0.2
       });
     }
   } else if (fxCondition === 'Clear') {
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 12; i++) {
       fxParticles.push({
-        x: Math.random() * W, y: Math.random() * H * 0.7,
-        r: 1.2 + Math.random(), speed: 0.3 + Math.random() * 0.5,
-        opacity: 0.25 + Math.random() * 0.3
+        x: Math.random() * W, y: Math.random() * H * 0.8,
+        r: 1.5 + Math.random() * 1.5, speed: 0.2 + Math.random() * 0.4,
+        opacity: 0.3 + Math.random() * 0.35
       });
     }
   } else {
-    for (let i = 0; i < 4; i++) {
+    /* Cloudy / Overcast / other: floating cloud wisps */
+    for (let i = 0; i < 6; i++) {
       fxParticles.push({
-        x: Math.random() * W, y: 30 + i * 18,
-        w: 55 + Math.random() * 40, h: 18,
-        speed: 0.08 + Math.random() * 0.1, opacity: 0.08
+        x: Math.random() * W, y: 20 + i * 15,
+        w: 60 + Math.random() * 50, h: 20 + Math.random() * 10,
+        speed: 0.1 + Math.random() * 0.12, opacity: 0.06 + Math.random() * 0.06
       });
     }
   }
@@ -117,50 +103,32 @@ export function startWeatherAnimation(condition) {
     const style = getComputedStyle(document.body);
     const textColor = style.getPropertyValue('--text').trim() || '#e8eaf6';
 
-    if (fxCondition === 'Rain' || fxCondition === 'Drizzle') {
-      fxCtx.strokeStyle = textColor; fxCtx.lineWidth = 1.2;
-      fxParticles.forEach(p => {
-        fxCtx.globalAlpha = p.opacity;
-        fxCtx.beginPath(); fxCtx.moveTo(p.x, p.y);
-        fxCtx.lineTo(p.x, p.y + p.len); fxCtx.stroke();
-        p.y += p.speed;
-        if (p.y > H + 10) { p.y = -p.len; p.x = Math.random() * W; }
-      });
-      fxCtx.globalAlpha = 1;
-    } else if (fxCondition === 'Snow') {
+     if (fxCondition === 'Snow') {
       fxCtx.fillStyle = '#fff';
+      const t = Date.now() / 1000;
       fxParticles.forEach(p => {
         fxCtx.globalAlpha = p.opacity;
         fxCtx.beginPath(); fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2); fxCtx.fill();
         p.y += p.speed;
-        p.x += Math.sin(p.phase) * p.sway * 0.6;
-        p.phase += 0.03;
+        p.x += Math.sin(t * p.sway + p.phase) * 1.2;
+        p.phase += 0.02;
         if (p.y > H + 4) { p.y = -2; p.x = Math.random() * W; }
         if (p.x < 0) p.x = W;
         if (p.x > W) p.x = 0;
       });
       fxCtx.globalAlpha = 1;
     } else if (fxCondition === 'Thunderstorm') {
-      fxCtx.strokeStyle = textColor; fxCtx.lineWidth = 1.3;
-      fxParticles.forEach(p => {
-        if (!p.len) return;
-        fxCtx.globalAlpha = p.opacity;
-        fxCtx.beginPath(); fxCtx.moveTo(p.x, p.y);
-        fxCtx.lineTo(p.x, p.y + p.len); fxCtx.stroke();
-        p.y += p.speed;
-        if (p.y > H + 8) { p.y = -p.len; p.x = Math.random() * W; }
-      });
+      /* Only lightning flash — no rain particles */
       fxParticles.lightning = (fxParticles.lightning || 0) - 1;
-      if (Math.random() < 0.018 && fxParticles.lightning <= 0) {
-        fxParticles.lightning = 5 + Math.random() * 7;
-        if (Math.random() > 0.6) fxParticles.lightning += 3;
+      if (Math.random() < 0.02 && fxParticles.lightning <= 0) {
+        fxParticles.lightning = 4 + Math.random() * 5;
       }
       if (fxParticles.lightning > 0) {
-        const intensity = Math.min(0.75, fxParticles.lightning / 9);
-        fxCtx.fillStyle = `rgba(255,250,210,${intensity})`;
+        const intensity = Math.min(0.85, fxParticles.lightning / 6);
+        fxCtx.fillStyle = `rgba(255,252,220,${intensity})`;
         fxCtx.fillRect(0, 0, W, H);
-        fxCtx.fillStyle = `rgba(180,210,255,${intensity * 0.25})`;
-        fxCtx.fillRect(0, 0, W, H);
+        fxCtx.fillStyle = `rgba(200,220,255,${intensity * 0.3})`;
+        fxCtx.fillRect(0, 0, W, H * 0.6);
       }
       fxCtx.globalAlpha = 1;
     } else if (fxCondition === 'Mist' || fxCondition === 'Fog') {
@@ -174,9 +142,11 @@ export function startWeatherAnimation(condition) {
       fxCtx.globalAlpha = 1;
     } else if (fxCondition === 'Clear') {
       fxCtx.fillStyle = '#fff';
+      const t = Date.now() / 1000;
       fxParticles.forEach(p => {
-        fxCtx.globalAlpha = p.opacity * (0.6 + Math.sin(Date.now()/420 + p.x) * 0.4);
-        fxCtx.beginPath(); fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2); fxCtx.fill();
+        const twinkle = 0.5 + Math.sin(t * 2 + p.x * 0.1) * 0.5;
+        fxCtx.globalAlpha = p.opacity * twinkle;
+        fxCtx.beginPath(); fxCtx.arc(p.x, p.y, p.r * twinkle, 0, Math.PI * 2); fxCtx.fill();
         p.y -= p.speed;
         if (p.y < -4) { p.y = H + 4; p.x = Math.random() * W; }
       });
@@ -234,14 +204,13 @@ export function startBackgroundWeatherAnimation(condition, windDeg = 270) {
   const windRad = (bgWindDeg - 90) * Math.PI / 180;
   const rainAngle = Math.sin(windRad) * 0.65;
 
-  if (bgCondition.includes('rain') || bgCondition.includes('drizzle')) {
-    for (let i = 0; i < 420; i++) {
+   if (bgCondition.includes('rain') || bgCondition.includes('drizzle')) {
+    /* Subtle atmospheric mist only — no full-screen rain particles */
+    for (let i = 0; i < 18; i++) {
       bgParticles.push({
         x: Math.random() * W, y: Math.random() * H,
-        len: 18 + Math.random() * 28, speed: 11 + Math.random() * 14,
-        thickness: 1.1 + Math.random() * 1.1,
-        opacity: 0.22 + Math.random() * 0.38,
-        angle: rainAngle + (Math.random() - 0.5) * 0.15
+        w: 200 + Math.random() * 300, h: 80 + Math.random() * 120,
+        speed: 0.04 + Math.random() * 0.1, opacity: 0.03 + Math.random() * 0.05
       });
     }
   } else if (bgCondition.includes('snow')) {
@@ -301,22 +270,19 @@ export function startBackgroundWeatherAnimation(condition, windDeg = 270) {
     const px = (bgMouseX - 0.5) * 18;
     const py = (bgMouseY - 0.5) * 12;
 
-    if (bgCondition.includes('rain') || bgCondition.includes('drizzle')) {
-      bgCtx.strokeStyle = textColor;
-      bgParticles.forEach(p => {
-        bgCtx.globalAlpha = p.opacity;
-        bgCtx.lineWidth = p.thickness;
-        const slant = p.angle || 0;
-        bgCtx.beginPath();
-        bgCtx.moveTo(p.x + px * 0.3, p.y + py * 0.2);
-        bgCtx.lineTo(p.x + px * 0.3 + slant * p.len, p.y + py * 0.2 + p.len);
-        bgCtx.stroke();
-        p.y += p.speed;
-        p.x += slant * 2.2;
-        if (p.y > H + 40) { p.y = -p.len - 20; p.x = Math.random() * W; }
-      });
-      bgCtx.globalAlpha = 1;
-    } else if (bgCondition.includes('snow')) {
+     if (bgCondition.includes('rain') || bgCondition.includes('drizzle')) {
+       /* Subtle mist layers for rain — no full-screen particles */
+       bgCtx.fillStyle = textColor;
+       bgParticles.forEach(p => {
+         bgCtx.globalAlpha = p.opacity;
+         bgCtx.beginPath();
+         bgCtx.ellipse(p.x + px * 0.8, p.y + py * 0.5, p.w, p.h, 0, 0, Math.PI * 2);
+         bgCtx.fill();
+         p.x += p.speed;
+         if (p.x - p.w > W) p.x = -p.w * 0.5;
+       });
+       bgCtx.globalAlpha = 1;
+     } else if (bgCondition.includes('snow')) {
       bgCtx.fillStyle = '#f0f4ff';
       bgParticles.forEach(p => {
         bgCtx.globalAlpha = p.opacity;
@@ -412,4 +378,146 @@ export function startLandingBackgroundCycle() {
       landingCycleInterval = null;
     }
   }, 10500);
+}
+
+// ====== REALISTIC HERO RAIN ======
+// Bezier curves + splash particles + depth layers + wind sync
+let heroRainCanvas, heroRainCtx, heroRainAnim = null;
+let heroRainDrops = [], heroRainSplashes = [];
+let heroRainWindDeg = 270;
+let heroRainIntensity = 'rain'; // 'rain' | 'drizzle' | 'thunder'
+
+export function startHeroRain(condition, windDeg = 270) {
+  stopHeroRain();
+  heroRainCanvas = document.getElementById('heroRain');
+  if (!heroRainCanvas) return;
+
+  heroRainIntensity = condition === 'Drizzle' ? 'drizzle'
+    : condition === 'Thunderstorm' ? 'thunder' : 'rain';
+  heroRainWindDeg = windDeg;
+
+  const heroWeatherVisual = heroRainCanvas.parentElement;
+  if (heroWeatherVisual) {
+    heroRainCanvas.width = heroWeatherVisual.clientWidth;
+    heroRainCanvas.height = heroWeatherVisual.clientHeight;
+  }
+
+  heroRainCtx = heroRainCtx || heroRainCanvas.getContext('2d');
+  heroRainDrops = [];
+  heroRainSplashes = [];
+
+  const W = heroRainCanvas.width;
+  const H = heroRainCanvas.height;
+
+  const isDrizzle = heroRainIntensity === 'drizzle';
+  const isThunder = heroRainIntensity === 'thunder';
+  const layerCounts = isDrizzle ? [8, 6, 4] : isThunder ? [20, 14, 10] : [16, 10, 6];
+
+  for (let layer = 0; layer < 3; layer++) {
+    const count = layerCounts[layer];
+    for (let i = 0; i < count; i++) {
+      heroRainDrops.push(createDrop(W, H, layer));
+    }
+  }
+
+  function createDrop(w, h, layer) {
+    const depthScale = 0.5 + layer * 0.3;
+    return {
+      x: Math.random() * w * 1.4 - w * 0.2,
+      y: Math.random() * h * 1.5 - h * 0.5,
+      length: (6 + Math.random() * 8) * (0.6 + layer * 0.3),
+      speed: (3 + Math.random() * 4) * depthScale,
+      thickness: (0.6 + layer * 0.3) * (isDrizzle ? 0.5 : 1),
+      opacity: (0.3 + layer * 0.15) * (isDrizzle ? 0.5 : 0.8),
+      layer: layer,
+      curve: (Math.random() - 0.5) * 0.3
+    };
+  }
+
+  function drawHeroRain() {
+    if (!heroRainCtx || !heroRainCanvas) return;
+    const W = heroRainCanvas.width;
+    const H = heroRainCanvas.height;
+    heroRainCtx.clearRect(0, 0, W, H);
+
+    const windRad = (heroRainWindDeg - 90) * Math.PI / 180;
+    const windStrength = isDrizzle ? 0.3 : isThunder ? 0.8 : 0.5;
+    const windX = Math.cos(windRad) * windStrength;
+    const windY = Math.sin(windRad) * windStrength * 0.3;
+
+    // Draw rain drops with Bezier curves
+    for (const drop of heroRainDrops) {
+      const depthScale = 0.5 + drop.layer * 0.3;
+      const dx = (windX * depthScale + drop.curve) * drop.length;
+      const dy = (windY * depthScale + 1) * drop.length;
+
+      const grad = heroRainCtx.createLinearGradient(
+        drop.x, drop.y,
+        drop.x + dx * 0.5, drop.y + dy
+      );
+      grad.addColorStop(0, `rgba(180,210,240,0)`);
+      grad.addColorStop(0.3, `rgba(180,210,240,${drop.opacity * 0.5})`);
+      grad.addColorStop(1, `rgba(200,225,255,${drop.opacity})`);
+
+      heroRainCtx.strokeStyle = grad;
+      heroRainCtx.lineWidth = drop.thickness;
+      heroRainCtx.lineCap = 'round';
+      heroRainCtx.beginPath();
+      heroRainCtx.moveTo(drop.x, drop.y);
+      heroRainCtx.bezierCurveTo(
+        drop.x + dx * 0.2, drop.y + dy * 0.3,
+        drop.x + dx * 0.7, drop.y + dy * 0.7,
+        drop.x + dx, drop.y + dy
+      );
+      heroRainCtx.stroke();
+
+      drop.y += drop.speed + windY * depthScale * 2;
+      drop.x += windX * depthScale * 2 + drop.curve;
+
+      if (drop.y > H) {
+        // Splash at bottom
+        if (drop.layer === 2 && Math.random() < 0.4) {
+          heroRainSplashes.push({
+            x: drop.x,
+            y: H - 5 + Math.random() * 8,
+            r: 1 + Math.random() * 2,
+            opacity: 0.5,
+            life: 1
+          });
+        }
+        drop.y = -drop.length - Math.random() * H * 0.3;
+        drop.x = Math.random() * W * 1.4 - W * 0.2;
+      }
+      if (drop.x > W + 20) drop.x = -drop.length;
+      if (drop.x < -drop.length - 20) drop.x = W + drop.length;
+    }
+
+    // Draw splashes
+    for (let i = heroRainSplashes.length - 1; i >= 0; i--) {
+      const s = heroRainSplashes[i];
+      heroRainCtx.beginPath();
+      heroRainCtx.arc(s.x, s.y, s.r * (1.5 - s.life), 0, Math.PI, true);
+      heroRainCtx.strokeStyle = `rgba(180,210,240,${s.opacity * s.life})`;
+      heroRainCtx.lineWidth = 0.8;
+      heroRainCtx.stroke();
+      s.life -= 0.08;
+      if (s.life <= 0) heroRainSplashes.splice(i, 1);
+    }
+
+    heroRainAnim = requestAnimationFrame(drawHeroRain);
+  }
+
+  drawHeroRain();
+}
+
+export function stopHeroRain() {
+  if (heroRainAnim) {
+    cancelAnimationFrame(heroRainAnim);
+    heroRainAnim = null;
+  }
+  if (heroRainCtx && heroRainCanvas) {
+    heroRainCtx.clearRect(0, 0, heroRainCanvas.width, heroRainCanvas.height);
+  }
+  heroRainDrops = [];
+  heroRainSplashes = [];
 }

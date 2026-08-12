@@ -3,11 +3,13 @@
 <form action="/" method="get" class="search-wrap" id="searchForm">
     <div class="search-input-wrap">
         <span class="search-icon">{{ ui_icon('search') }}</span>
+        <label class="visually-hidden" for="cityInput">Rechercher une ville</label>
         <input type="text" name="city" id="cityInput" class="search-input"
             placeholder="Rechercher une ville... (Paris, Tokyo, Bamako)"
             data-i18n="search_placeholder"
-            value="{{ recherche }}" autocomplete="off">
-        <button type="button" class="voice-btn" id="voiceBtn" onclick="startVoice()" title="Recherche vocale">{{ ui_icon('mic') }}</button>
+            value="{{ recherche }}" autocomplete="off"
+            aria-autocomplete="list" aria-controls="autocompleteList">
+        <button type="button" class="voice-btn" id="voiceBtn" onclick="startVoice()" title="Recherche vocale" aria-label="Recherche vocale">{{ ui_icon('mic') }}</button>
         <div class="autocomplete-list" id="autocompleteList"></div>
     </div>
     <input type="hidden" name="unit" id="unitInput" value="{{ unite }}">
@@ -24,7 +26,7 @@
     <a href="/?city=New+York&unit={{ unite }}&lang={{ lang }}" class="city-chip">{{ flag_icon('us') }} New York</a>
     <a href="/?city=London&unit={{ unite }}&lang={{ lang }}"   class="city-chip">{{ flag_icon('gb') }} Londres</a>
     <a href="/?city=Dubai&unit={{ unite }}&lang={{ lang }}"    class="city-chip">{{ flag_icon('ae') }} Dubai</a>
-    <button class="city-chip" onclick="geolocate()" style="cursor:pointer;">{{ ui_icon('locate-me') }} <span data-i18n="my_location">Ma position</span></button>
+     <button class="city-chip" onclick="geolocate()">{{ ui_icon('locate-me') }} <span data-i18n="my_location">Ma position</span></button>
 </div>
 {% elif variant == 'compact' %}
 <div class="landing-cities">
